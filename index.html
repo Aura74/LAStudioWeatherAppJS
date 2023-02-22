@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>⛅ Lars VäderApp v.1</title>
+  <link rel="stylesheet" href="./style.css" />
+  <script src="https://kit.fontawesome.com/4ff51b4cc4.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+    crossorigin="anonymous"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gluten:wght@100;200;300&family=Nosifer&display=swap"
+    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:400,900" rel="stylesheet">
+</head>
+
+<body class="body1">
+
+  <!-- Börjar med en container där allt ska vara i, en div med klass-namnet main-container -->
+  <div class="main-container">
+    <div class="container top">
+      <!-- en kontainer för top, med klassnamnet container top -->
+      <h1 class="rubriken">⛅ Viket Väder! </h1>
+      <h2>Idag</h2>
+
+      <form action="" onsubmit="return false">
+        <!-- form rutan för knapp och skriv i rutan -->
+        <input id="vilkenStadInput" onclick="resetSearchField()" type="text" class="search"
+          placeholder="⛪ Sök och välj ort">
+        <!-- En sökruta -->
+        <button onclick="GetInfo(), andraSattet()" type="submit" class="btn">Sök 🍳</button> <!-- Sök-knappen -->
+        <button onclick="GetInfo(), trogglaFunction(), andraSattet()">Detaljer</button>
+        <!-- Detaljer  5 dagars - Knappen -->
+        <p class="error"></p> <!-- När det blir error -->
+      </form>
+
+      <!--En till section, här kommer iconen. och info om ort tid datum år osv vara   -->
+      <section>
+        <div class="container">
+          <!-- En container -->
+          <div class="classenTillDivenSomIkonenLiggerI">
+            <!-- bliden ionen för väder -->
+            <img src="" id="img0" class="weather-icon"><!-- ikonen -->
+          </div>
+
+          <div class="location">
+            <!-- div för plats och datum -->
+            <div id="cityLA"></div> <!-- Ort - rutan -->
+            <div class="date"></div> <!-- Datum-rutan -->
+          </div>
+
+          <div class="current">
+            <!-- just nu div för temp och sol och moln-->
+            <div id="tempLAJustNu"></div><!-- temperatur-rutan -->
+            <div id="tempLAMaxOMin"></div><!-- temperatur-rutan -->
+            <div id="molnLA"></div> <!-- sol moln-rutan -->
+          </div>
+
+          <!-- Min Canvas hanar här -->
+          <canvas id="myCanvas" width="250" height="100"> </canvas>
+
+          <!-- Här börjar delen för Favoriterna -->
+          <section>
+            <div class="container">
+              <div>
+                <form onsubmit="return false">
+                  <button id="favoritButtonAdd">Lägg till i Favorit ➕</button>
+                </form>
+              </div>
+              <!-- Listan för favoriter-->
+              <ol class="sparadeFavoriter">
+              </ol>
+              <button style="background-color: rgb(184, 8, 8);" class="clear">Radera Alla Favoriterna❌</button>
+            </div>
+          </section>
+      </section>
+    </div>
+  </div>
+
+
+  <!-- **************************************** Här kommer 5 dagars prognsen ************************************************************************ -->
+
+  <!-- Den är dold från börja n för att senare dyka upp när man trycker på detaljknappem -->
+  <div hidden id="doldDiv" class="dold">
+    <div class="container top">
+      <h1></h1>5-dagars prognos för:</h2>
+      <h2 id="ortsName"></h2>
+    </div>
+    <section id="doldDiv2">
+      <div id="weatherContainer">
+        <div class="icons">
+          <p class="weather" id="day1"></p>
+
+          <p id="datum1"></p>
+          <div class="image"><img src="" class="imgClass" id="img1"></div>
+          <p class="minstaTemeraturenDenDagen" id="day1Min"></p>
+          <p class="maximalaTemeraturenDenDagen" id="day1Max"></p>
+          <p id="nyttDtumOchTid2"></p>
+          <p id="nyttDtumOchTid"></p>
+        </div>
+
+        <div class="icons">
+          <p class="weather" id="day2"></p>
+          <p id="datum2"></p>
+          <div class="image"><img src="" class="imgClass" id="img2"></div>
+          <p class="minstaTemeraturenDenDagen" id="day2Min"></p>
+          <p class="maximalaTemeraturenDenDagen" id="day2Max"></p>
+        </div>
+
+        <div class="icons">
+          <p class="weather" id="day3"></p>
+          <p id="datum3"></p>
+          <div class="image"><img src="" class="imgClass" id="img3"></div>
+          <p class="minstaTemeraturenDenDagen" id="day3Min"></p>
+          <p class="maximalaTemeraturenDenDagen" id="day3Max"></p>
+        </div>
+
+        <div class="icons">
+          <p class="weather" id="day4"></p>
+          <p id="datum4"></p>
+          <div class="image"><img src="" class="imgClass" id="img4"></div>
+          <p class="minstaTemeraturenDenDagen" id="day4Min"></p>
+          <p class="maximalaTemeraturenDenDagen" id="day4Max"></p>
+        </div>
+
+        <div class="icons">
+          <p class="weather" id="day5"></p>
+          <p id="datum5"></p>
+          <div class="image"><img src="" class="imgClass" id="img5"></div>
+          <p class="minstaTemeraturenDenDagen" id="day5Min"></p>
+          <p class="maximalaTemeraturenDenDagen" id="day5Max"></p>
+        </div>
+
+
+        <!-- Det andra sättet -->
+        <h1 class="detAndraSattetClassen">Det andra sättet</h1>
+        <div id="annatApiDivenDarAlla5DagarnaLiggerIPaIndexHtml"></div>
+
+      </div>
+  </div>
+  </section>
+
+  <!-- Här är bakgrunsvideon -->
+  <div class="fullscreen-bg">
+    <video loop muted autoplay poster="" class="fullscreen-bg__video">
+      <source src="film/Ink.mp4" type="video/mp4">
+    </video>
+  </div>
+
+  <script src="./app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"
+    integrity="sha384-IQsoLXl5PILFhosVNubq5LC7Qb9DXgDA9i+tQ8Zj3iwWAwPtgFTxbJ8NT4GN1R8p"
+    crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js"
+    integrity="sha384-cVKIPhGWiC2Al4u+LWgxfKTRIcfu0JTxR+EQDz/bgldoEyl4H0zUF0QKbrJ0EcQF"
+    crossorigin="anonymous"></script>
+</body>
+
+</html>

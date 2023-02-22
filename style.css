@@ -1,0 +1,502 @@
+/* Först görs en reset */
+* {
+  margin    : 0;
+  /* Vill inte ha någon magin från start */
+  padding   : 0;
+  /* Vill inte ha någon padding från start */
+  box-sizing: border-box;
+  /* border-box och innebär att man anger boxens totala storlek, inklusive padding och kantlinje/border. */
+}
+
+/* font-family: 'Gluten', cursive;
+font-family: 'Nosifer', cursive; */
+
+body {
+  /* En fin färg */
+  background      : #420000;
+  background-image: url("images/image.png");
+  /* En passande font från googel fonts */
+  font-family     : 'Gluten', cursive;
+  /*Vidden ska vara 100%  */
+  width           : 100%;
+  /*Och höjden ska vara 100 vh viewport height är inte 100% av skärmen alla gånger  */
+  height          : 100vh;
+  /*Display flex så man kan använda sig av flex box man sätter display flex i förälder elementet  */
+  display         : flex;
+  /* Vill ha allt i mitten, justify-content definerar hur webbläsaren inehållet och i detta fall centrerat */
+  justify-content : center;
+  /* align-items  :center centrear vertikalt; */
+  align-items     : center;
+}
+
+.container {
+  /* 85%; av sidan ska tas upp */
+  /* Inga marginaler här och auto */
+  margin          : 0 auto;
+  color           : rgb(255, 255, 255);
+  /* Vill ha allt i mitten, justify-content definerar hur webbläsaren inehållet och i detta fall centrerat */
+  justify-content : center;
+  /* align-items  :center centrear vertikalt; */
+  align-items     : center;
+}
+
+.main-container {
+  display        : flex;
+  align-items    : center;
+  /* Gör så att saker och ting staplas på varandra som i en kolumn, motsatsen till row/rad */
+  flex-direction : column;
+  /*bredden, 100% av containern  */
+  width          : 100%;
+  /* Önskad maximal bredd */
+  max-width      : 350px;
+  height         : 100vh;
+  /* En bild som bakgrund i containern, ska inte repiteras det räcker med en bild en gång och den centrers */
+  background     : url(./images/weather.png) no-repeat center;
+  /* Den ska täcka hela containern */
+  background-size: cover;
+  /* Rundade kanter */
+  border-radius  : 10px;
+  /* om elementerna överlappar varandra så döljs det, inte scroll eller visible */
+  overflow       : scroll;
+  /* Relative är att elementet är baserat på tillfälliga positionen utan att ändra layouten runt det */
+  position       : relative;
+}
+
+.main-container2 {
+  display: none;
+}
+
+.main-container3 {
+  display        : flex;
+  align-items    : center;
+  /* Gör så att saker och ting staplas på varandra som i en kolumn, motsatsen till row/rad */
+  flex-direction : column;
+  /*bredden, 100% av containern  */
+  width          : 100%;
+  /* Önskad maximal bredd */
+  max-width      : 350px;
+  height         : 100vh;
+  /* En bild som bakgrund i containern, ska inte repiteras det räcker med en bild en gång och den centrers */
+  background     : url(./images/weather2.png) no-repeat center;
+  /* Den ska täcka hela containern */
+  background-size: cover;
+  /* Rundade kanter */
+  border-radius  : 10px;
+  /* om elementerna överlappar varandra så döljs det, inte scroll eller visible */
+  overflow       : scroll;
+  /* Relative är att elementet är baserat på tillfälliga positionen utan att ändra layouten runt det */
+  position       : relative;
+}
+
+.top {
+  /* Texten ska vara centrerad */
+  text-align: center;
+  /* Framför */
+  z-index   : 999;
+}
+
+.top h1 {
+  /* Färgen på texten i detta fall rubriken h1 */
+  color      : white;
+  /* Höjden på raderna med text, resultatet blir mer mellanrumm mellan raderna*/
+  line-height: 2;
+  font-family: 'Nosifer', cursive;
+}
+
+.top input,
+.top button {
+  /*  */
+  display      : block;
+  /* 80% av containern */
+  width        : 80%;
+  margin       : 0 auto;
+  padding      : 10px;
+  margin-bottom: 5px;
+  /* Outline ger en möjlighet att rita en ram kring ett element, utan att den ramen tar upp något utrymme. Se följande exempel. En outline. Ändra storleken på outlinen och se vad som händer.  */
+  outline      : none;
+  border       : none;
+}
+
+.top input {
+  /* Mörk bakgrund på sökrutan */
+  background-color: rgba(0, 0, 0, .5);
+  /* Ramen runt sökrutan */
+  border-bottom   : solid 2px green;
+  /* Rundade kanter */
+  border-radius   : 10px 0 10px 0;
+  /*Texten i rutan ska vara i center  */
+  text-align      : center;
+  /* Stroleken på texten i sökrutan */
+  font-size       : 14px;
+  color           : white;
+}
+
+/* när du focuserar på sökrutan, ex när du klickar eller tabbar dig dit, detta är en pseudo-class */
+.top input:focus {
+  color    : white;
+  font-size: 15px;
+}
+
+.top input::placeholder {
+  /* nu syns placeholdern bättre, alltså texten i rutan som är förskriven */
+  color: rgba(255, 255, 255.5);
+}
+
+.top button {
+  background-color: #21a706d8;
+  color           : white;
+  font-size       : 14px;
+  /* Hur fet texten ska vara */
+  font-weight     : bold;
+  /* Versaler */
+  text-transform  : uppercase;
+  /* Runda kanter */
+  border-radius   : 3px;
+  /* En hand istället för pil som pekare */
+  cursor          : pointer;
+  /*  */
+  transition      : all .3s;
+  /*  */
+}
+
+/* hover posudoclass, lite mörkare färg */
+.top button:hover {
+  background-color: #0c3500;
+}
+
+.top .error {
+  color    : white;
+  font-size: 14px;
+}
+
+.location {
+  background-color: rgba(0, 0, 0, 0.333);
+  padding-bottom  : 15px;
+  text-align      : center;
+  color           : white;
+  line-height     : 1.6;
+  border-radius   : 15px 15px 0 0;
+}
+
+.location:hover {
+  background-color: rgba(0, 0, 0, 0.61);
+  padding-bottom  : 18px;
+  text-align      : center;
+  color           : rgb(255, 247, 142);
+  line-height     : 1.7;
+  zoom            : 1;
+  transform       : scale(1);
+  transition      : all .3s;
+  border-radius   : 20px 20px 0 0;
+}
+
+/* Vilken ort */
+.location .city {
+  font-size  : 20px;
+  font-weight: bold;
+}
+
+.current {
+  width           : 100%;
+  /* Positionerad relativ till dens normala position. 
+  Med position    : relative flyttar du det påverkade 
+  innehållet till önskat ställe men med det 
+  ursprungliga stället som utgångsläge. 
+  Du kan styra vart innehållet ska 
+  placeras med egenskaperna left, 
+  right, top och bottom och avståndet 
+  anges i pixlar eller em. */
+  position        : relative;
+  background-color: rgba(0, 0, 0, 0.333);
+  padding-top     : 10px;
+  color           : white;
+  /*texten till vänster  */
+  text-align      : center;
+  line-height     : 1.6;
+  border-radius   : 0 0 15px 15px;
+}
+
+/* När man hovrar knappen så ' ndras färg osv */
+.current:hover {
+  background-color: rgba(0, 0, 0, 0.61);
+  padding-bottom  : 1px;
+  text-align      : center;
+  color           : rgb(255, 247, 142);
+  line-height     : 1.7;
+  zoom            : 1;
+  transform       : scale(1);
+  transition      : all .3s;
+  border-radius   : 0 0 20px 20px;
+}
+
+/* För bakgrundsvideon */
+.fullscreen-bg {
+  position: fixed;
+  top     : 0;
+  right   : 0;
+  bottom  : 0;
+  left    : 0;
+  overflow: hidden;
+  z-index : -100;
+}
+
+.fullscreen-bg__video {
+  position  : absolute;
+  top       : 0;
+  left      : 0;
+  width     : auto;
+  height    : auto;
+  object-fit: contain;
+}
+
+#weatherContainer {
+  /* Vill ha allt i mitten, justify-content definerar hur webbläsaren inehållet och i detta fall centrerat */
+  justify-content : center;
+  /* align-items  :center centrear vertikalt; */
+  align-items     : center;
+}
+
+.weather {
+  font-weight: 900;
+}
+
+#colorMain5 {
+  background-color: rgba(0, 0, 0, .5);
+  color           : aliceblue;
+}
+
+.colorMain5 {
+  background-color: rgba(0, 0, 0, 0);
+  color           : aliceblue;
+}
+
+#dold {
+  display: none;
+  color  : #0c350000;
+}
+
+.dold {
+  display: none;
+  color  : #0c350000;
+}
+
+.icons {
+  font-weight     : 700;
+  display         : inline-bock;
+  background-color: #ffc100;
+  color           : rgb(32, 32, 32);
+  float           : center;
+  height          : 190px;
+  width           : 180px;
+  margin          : 20px;
+  border          : 5px solid rgb(0, 0, 0);
+  border-radius   : 10px;
+}
+
+.icons:hover {
+  font-weight     : 900;
+  display         : inline-bock;
+  background-color: #ff9900d2;
+  color           : black;
+  float           : center;
+  margin          : 10px;
+  border          : 5px solid #000000d8;
+  line-height     : 1.3;
+  zoom            : 1;
+  transform       : scale(1.2);
+  transition      : all 0.3s ease;
+  border-radius   : 20px;
+}
+
+.image {
+  height       : 140px;
+  width        : 100%;
+  margin-bottom: -25px;
+  margin-top   : -25px;
+  padding      : 0;
+  border       : 0;
+}
+
+.imgClass {
+  height       : 140px;
+  width        : 100%;
+  margin-top   : -2px;
+  margin-bottom: -25px;
+  padding      : 0;
+  border       : 0;
+}
+
+
+.weather {
+  text-align: center;
+  padding   : 3px;
+}
+
+.minstaTemeraturenDenDagen {
+  text-align: center;
+}
+
+.maximalaTemeraturenDenDagen {
+  text-align: center;
+}
+
+#img0 {
+  height: 130px;
+  width : 200px;
+}
+
+
+form input,
+form button {
+  padding   : 0.5rem;
+  /* storleken på paddingen  */
+  font-size : 2rem;
+  /* större text */
+  border    : none;
+  /* border */
+  background: white;
+  /* bakgrunden ska vara vit */
+}
+
+form button {
+  color     : #000000;
+  /* färg på knapp*/
+  background: white;
+  /*  vit bakgrund */
+  cursor    : pointer;
+  /*  gör om musepekaren till en pointer */
+  transition: all 0.3s ease;
+}
+
+form button:hover {
+  background: #13ff3b;
+  /*  grön bakgrund */
+  color     : white;
+}
+
+.todo-container {
+  display        : flex;
+  justify-content: center;
+  /*  centrerar */
+  align-items    : center;
+  /*  centrerar */
+}
+
+.sparadeFavoriter {
+  min-width       : 30%;
+  text-transform  : uppercase;
+  background-color: rgba(0, 0, 0, 0.333);
+  list-style      : none;
+  /*  tar bort punkterna */
+  border-radius   : 15px;
+}
+
+.sparadeFavoriter:hover {
+  background-color: #fffb00;
+  background-color: rgba(0, 0, 0, 0.61);
+  zoom            : 1;
+  transform       : scale(1);
+  transition      : all .3s;
+  border-radius   : 20px;
+  color           : rgb(255, 247, 142);
+}
+
+.search {
+  text-transform: uppercase;
+}
+
+.rubriken {
+  text-transform: uppercase;
+}
+
+#ortsName {
+  text-transform: uppercase;
+  font-family   : 'Nosifer', cursive;
+}
+
+#datum5 {
+  text-align: center;
+}
+
+p {
+  text-align : center;
+  line-height: 1.2;
+}
+
+
+/* Nya stället *********************************************** */
+
+/* .classenFor {
+  
+} */
+
+.classenForDivenSomDatumTempOchIconKommerAttLiggaI {
+  color           : black;
+  background-color: #ffc100;
+  border          : solid black 5px;
+  margin-bottom   : 5px;
+  margin-left     : 20px;
+  margin-right    : 20px;
+  border-radius   : 20px;
+  height          : 190px;
+  width           : 180px;
+  font-weight     : 500;
+
+}
+
+.classenForDivenSomDatumTempOchIconKommerAttLiggaI:hover {
+  font-weight     : 900;
+  display         : inline-bock;
+  background-color: #ff9900d2;
+  color           : black;
+  float           : center;
+  margin          : 10px;
+  border          : 5px solid #000000d8;
+  line-height     : 1.3;
+  zoom            : 1;
+  transform       : scale(1.2);
+  transition      : all 0.3s ease;
+  border-radius   : 20px;
+}
+
+#annatApiDivenDarAlla5DagarnaLiggerIPaIndexHtml {
+  /* Vill ha allt i mitten, justify-content definerar hur webbläsaren inehållet och i detta fall centrerat */
+  justify-content : center;
+  /* align-items  :center centrear vertikalt; */
+  align-items     : center;
+}
+
+.iconensClass {
+  display       : block;
+  margin-left   : auto;
+  margin-right  : auto;
+  margin-top    : -25px;
+  margin-bottom : -25px;
+  border-top    : 0;
+  padding-bottom: 0;
+  padding-top   : 0;
+  border-bottom : 0;
+  zoom          : 1.5;
+}
+
+.maxTemperaturClassenP {
+  margin-bottom : 0;
+  padding-bottom: 0;
+  border-bottom : 0;
+}
+
+
+.denRodaKnappenSomRaderar:hover {
+  color : #d9ff05;
+  border: dotted #d9ff05 7px;
+}
+
+.clear:hover {
+  color : #d9ff05;
+  border: dotted #d9ff05 7px;
+}
+
+.detAndraSattetClassen {
+  margin-left : 20px;
+  margin-right: 20px;
+}
