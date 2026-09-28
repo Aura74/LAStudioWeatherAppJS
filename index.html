@@ -1,162 +1,156 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="sv" data-theme="auto">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>⛅ Lars VäderApp v.1</title>
-  <link rel="stylesheet" href="./style.css" />
-  <script src="https://kit.fontawesome.com/4ff51b4cc4.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
-    integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
-    crossorigin="anonymous"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark light">
+  <title>Vilket väder</title>
+  <meta name="description" content="Väderprognos för hela världen – just nu, timme för timme och sju dagar framåt. Spara dina favoritorter.">
+  <meta name="theme-color" id="theme-color" content="#1b3f7a">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Gluten:wght@100;200;300&family=Nosifer&display=swap"
-    rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css?family=Montserrat:400,900" rel="stylesheet">
+  <link rel="preconnect" href="https://api.open-meteo.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+
+  <!-- PWA – installerbar app -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Väder">
+  <link rel="icon" type="image/svg+xml" href="assets/icons/icon.svg">
+  <link rel="icon" type="image/png" sizes="64x64" href="assets/icons/favicon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
 </head>
+<body data-weather="clear-day" data-state="loading">
 
-<body class="body1">
+  <!-- Delade SVG-gradienter för väderikonerna (fylls av app.js) -->
+  <svg id="wx-defs" width="0" height="0" aria-hidden="true" focusable="false"></svg>
 
-  <!-- Börjar med en container där allt ska vara i, en div med klass-namnet main-container -->
-  <div class="main-container">
-    <div class="container top">
-      <!-- en kontainer för top, med klassnamnet container top -->
-      <h1 class="rubriken">⛅ Viket Väder! </h1>
-      <h2>Idag</h2>
+  <!-- Bakgrund: vädergradient + mjuka ljuskällor -->
+  <div class="bg" aria-hidden="true">
+    <div class="bg__glow bg__glow--a"></div>
+    <div class="bg__glow bg__glow--b"></div>
+  </div>
 
-      <form action="" onsubmit="return false">
-        <!-- form rutan för knapp och skriv i rutan -->
-        <input id="vilkenStadInput" onclick="resetSearchField()" type="text" class="search"
-          placeholder="⛪ Sök och välj ort">
-        <!-- En sökruta -->
-        <button onclick="GetInfo(), andraSattet()" type="submit" class="btn">Sök 🍳</button> <!-- Sök-knappen -->
-        <button onclick="GetInfo(), trogglaFunction(), andraSattet()">Detaljer</button>
-        <!-- Detaljer  5 dagars - Knappen -->
-        <p class="error"></p> <!-- När det blir error -->
-      </form>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Vilket väder – startsida">
+      <span class="brand__mark" aria-hidden="true">
+        <svg viewBox="0 0 64 64" width="36" height="36">
+          <circle cx="24" cy="24" r="11" fill="url(#wx-sun)"/>
+          <g fill="url(#wx-cloud)" transform="translate(6 8) scale(.92)">
+            <rect x="14" y="34" width="40" height="12" rx="7"/>
+            <circle cx="26" cy="32" r="10"/>
+            <circle cx="38" cy="28" r="13"/>
+            <circle cx="46" cy="36" r="9"/>
+          </g>
+        </svg>
+      </span>
+      <span class="brand__text">Vilket väder<small>LA Studio</small></span>
+    </a>
 
-      <!--En till section, här kommer iconen. och info om ort tid datum år osv vara   -->
-      <section>
-        <div class="container">
-          <!-- En container -->
-          <div class="classenTillDivenSomIkonenLiggerI">
-            <!-- bliden ionen för väder -->
-            <img src="" id="img0" class="weather-icon"><!-- ikonen -->
+    <form class="search" id="search-form" role="search" autocomplete="off">
+      <label class="visually-hidden" for="search-input">Sök ort</label>
+      <svg class="search__icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+        <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/>
+        <line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <input id="search-input" class="search__input" type="search" placeholder="Sök ort…"
+             role="combobox" aria-autocomplete="list" aria-controls="search-results" aria-expanded="false"
+             enterkeyhint="search" spellcheck="false" autocapitalize="words">
+      <button type="button" class="search__clear" id="search-clear" aria-label="Rensa sökning" hidden>
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+      <ul id="search-results" class="search__results" role="listbox" aria-label="Sökträffar" hidden></ul>
+    </form>
+
+    <div class="actions">
+      <button id="btn-locate" class="icon-btn" type="button" title="Min position" aria-label="Visa vädret där jag är">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/>
+          <circle cx="12" cy="12" r="2.2" fill="currentColor"/>
+        </svg>
+      </button>
+      <button id="btn-unit" class="icon-btn icon-btn--text" type="button" title="Byt temperaturenhet" aria-label="Byt temperaturenhet">°C</button>
+      <button id="btn-theme" class="icon-btn" type="button" title="Byt ljust/mörkt tema" aria-label="Byt ljust/mörkt tema">
+        <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="2"/>
+          <path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="app">
+    <nav class="favorites" id="favorites" aria-label="Favoritorter" hidden>
+      <div class="favorites__list" id="favorites-list"></div>
+    </nav>
+
+    <div class="grid">
+      <section class="card hero" id="hero" aria-live="polite" aria-busy="true">
+        <div class="hero__top">
+          <div class="hero__where">
+            <h1 class="hero__place" id="hero-place"><span class="skel skel--title"></span></h1>
+            <p class="hero__sub" id="hero-sub"><span class="skel skel--text"></span></p>
           </div>
-
-          <div class="location">
-            <!-- div för plats och datum -->
-            <div id="cityLA"></div> <!-- Ort - rutan -->
-            <div class="date"></div> <!-- Datum-rutan -->
+          <button id="btn-fav" class="icon-btn fav-btn" type="button" aria-pressed="false" aria-label="Spara som favorit" title="Spara som favorit">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+              <path class="fav-btn__star" d="M12 2.8l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.7l-5.9 3.1 1.2-6.5L2.5 9.7l6.6-.9z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="hero__main">
+          <div class="hero__icon" id="hero-icon"><span class="skel skel--icon"></span></div>
+          <div class="hero__temp">
+            <span class="hero__value" id="hero-temp"><span class="skel skel--big"></span></span>
+            <span class="hero__unit" id="hero-unit"></span>
           </div>
+        </div>
+        <p class="hero__desc" id="hero-desc"><span class="skel skel--text"></span></p>
+        <p class="hero__range" id="hero-range"></p>
+      </section>
 
-          <div class="current">
-            <!-- just nu div för temp och sol och moln-->
-            <div id="tempLAJustNu"></div><!-- temperatur-rutan -->
-            <div id="tempLAMaxOMin"></div><!-- temperatur-rutan -->
-            <div id="molnLA"></div> <!-- sol moln-rutan -->
-          </div>
+      <section class="card details" aria-label="Detaljer just nu">
+        <div class="stats" id="stats"></div>
+      </section>
 
-          <!-- Min Canvas hanar här -->
-          <canvas id="myCanvas" width="250" height="100"> </canvas>
+      <section class="card hourly" aria-labelledby="hourly-title">
+        <div class="card__head">
+          <h2 class="card__title" id="hourly-title">Kommande timmar</h2>
+          <span class="card__hint" id="hourly-hint"></span>
+        </div>
+        <div class="hourly__scroller" id="hourly" tabindex="0"></div>
+      </section>
 
-          <!-- Här börjar delen för Favoriterna -->
-          <section>
-            <div class="container">
-              <div>
-                <form onsubmit="return false">
-                  <button id="favoritButtonAdd">Lägg till i Favorit ➕</button>
-                </form>
-              </div>
-              <!-- Listan för favoriter-->
-              <ol class="sparadeFavoriter">
-              </ol>
-              <button style="background-color: rgb(184, 8, 8);" class="clear">Radera Alla Favoriterna❌</button>
-            </div>
-          </section>
+      <section class="card daily" aria-labelledby="daily-title">
+        <div class="card__head">
+          <h2 class="card__title" id="daily-title">Sju dagar</h2>
+          <span class="card__hint">Lägsta / högsta</span>
+        </div>
+        <ol class="daily__list" id="daily"></ol>
       </section>
     </div>
+
+    <footer class="footer">
+      <span id="updated"></span>
+      <span class="footer__sep" aria-hidden="true">·</span>
+      <span>Väderdata från <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, ortsök via <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></span>
+      <span class="footer__sep" aria-hidden="true">·</span>
+      <button id="btn-refresh" class="link-btn" type="button">Uppdatera</button>
+    </footer>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden>
+    <span class="toast__text" id="toast-text"></span>
+    <button class="toast__action" id="toast-action" type="button" hidden></button>
   </div>
 
-
-  <!-- **************************************** Här kommer 5 dagars prognsen ************************************************************************ -->
-
-  <!-- Den är dold från börja n för att senare dyka upp när man trycker på detaljknappem -->
-  <div hidden id="doldDiv" class="dold">
-    <div class="container top">
-      <h1></h1>5-dagars prognos för:</h2>
-      <h2 id="ortsName"></h2>
-    </div>
-    <section id="doldDiv2">
-      <div id="weatherContainer">
-        <div class="icons">
-          <p class="weather" id="day1"></p>
-
-          <p id="datum1"></p>
-          <div class="image"><img src="" class="imgClass" id="img1"></div>
-          <p class="minstaTemeraturenDenDagen" id="day1Min"></p>
-          <p class="maximalaTemeraturenDenDagen" id="day1Max"></p>
-          <p id="nyttDtumOchTid2"></p>
-          <p id="nyttDtumOchTid"></p>
-        </div>
-
-        <div class="icons">
-          <p class="weather" id="day2"></p>
-          <p id="datum2"></p>
-          <div class="image"><img src="" class="imgClass" id="img2"></div>
-          <p class="minstaTemeraturenDenDagen" id="day2Min"></p>
-          <p class="maximalaTemeraturenDenDagen" id="day2Max"></p>
-        </div>
-
-        <div class="icons">
-          <p class="weather" id="day3"></p>
-          <p id="datum3"></p>
-          <div class="image"><img src="" class="imgClass" id="img3"></div>
-          <p class="minstaTemeraturenDenDagen" id="day3Min"></p>
-          <p class="maximalaTemeraturenDenDagen" id="day3Max"></p>
-        </div>
-
-        <div class="icons">
-          <p class="weather" id="day4"></p>
-          <p id="datum4"></p>
-          <div class="image"><img src="" class="imgClass" id="img4"></div>
-          <p class="minstaTemeraturenDenDagen" id="day4Min"></p>
-          <p class="maximalaTemeraturenDenDagen" id="day4Max"></p>
-        </div>
-
-        <div class="icons">
-          <p class="weather" id="day5"></p>
-          <p id="datum5"></p>
-          <div class="image"><img src="" class="imgClass" id="img5"></div>
-          <p class="minstaTemeraturenDenDagen" id="day5Min"></p>
-          <p class="maximalaTemeraturenDenDagen" id="day5Max"></p>
-        </div>
-
-
-        <!-- Det andra sättet -->
-        <h1 class="detAndraSattetClassen">Det andra sättet</h1>
-        <div id="annatApiDivenDarAlla5DagarnaLiggerIPaIndexHtml"></div>
-
-      </div>
-  </div>
-  </section>
-
-  <!-- Här är bakgrunsvideon -->
-  <div class="fullscreen-bg">
-    <video loop muted autoplay poster="" class="fullscreen-bg__video">
-      <source src="film/Ink.mp4" type="video/mp4">
-    </video>
-  </div>
-
-  <script src="./app.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"
-    integrity="sha384-IQsoLXl5PILFhosVNubq5LC7Qb9DXgDA9i+tQ8Zj3iwWAwPtgFTxbJ8NT4GN1R8p"
-    crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js"
-    integrity="sha384-cVKIPhGWiC2Al4u+LWgxfKTRIcfu0JTxR+EQDz/bgldoEyl4H0zUF0QKbrJ0EcQF"
-    crossorigin="anonymous"></script>
+  <script type="module" src="assets/js/app.js"></script>
 </body>
-
 </html>
