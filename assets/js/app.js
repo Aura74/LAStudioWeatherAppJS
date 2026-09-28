@@ -122,6 +122,7 @@ function bindEvents() {
   els.btnLocate.addEventListener('click', () => locate());
   els.btnUnit.addEventListener('click', toggleUnit);
   els.btnTheme.addEventListener('click', toggleTheme);
+  document.addEventListener('designchange', syncThemeColor);
   els.btnFav.addEventListener('click', toggleFavorite);
   els.btnRefresh.addEventListener('click', () => state.place && loadPlace(state.place));
 
@@ -399,7 +400,7 @@ function toggleTheme() {
 function syncThemeColor() {
   // Läs den faktiska bakgrundsfärgen (styrs av data-weather + tema i CSS).
   requestAnimationFrame(() => {
-    const c = getComputedStyle(els.body).getPropertyValue('--bg-1').trim();
+    const c = getComputedStyle(els.body).getPropertyValue(els.html.dataset.design === 'astra' ? '--astra-page' : '--bg-1').trim();
     if (c) els.themeColor.setAttribute('content', c);
   });
 }

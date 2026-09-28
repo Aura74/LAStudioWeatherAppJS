@@ -8,7 +8,7 @@
 //
 // Bumpa VERSION vid deploy så gamla cachar rensas.
 
-const VERSION = 'v2.0.0';
+const VERSION = 'v2.1.0';
 const SHELL_CACHE = `vader-shell-${VERSION}`;
 const DATA_CACHE = `vader-data-${VERSION}`;
 const FONT_CACHE = 'vader-fonts';
@@ -18,6 +18,8 @@ const SHELL = [
   './index.html',
   './manifest.webmanifest',
   './assets/css/style.css',
+  './assets/css/astra.css',
+  './assets/js/design.js',
   './assets/js/app.js',
   './assets/js/api.js',
   './assets/js/format.js',

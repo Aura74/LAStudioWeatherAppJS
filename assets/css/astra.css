@@ -1,0 +1,217 @@
+/* Designväljaren är gemensam. Originalets stilmall lämnas orörd. */
+.astra-only { display: none; }
+.design-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 14px; margin: 4px 0 18px; }
+.design-bar__label { color: var(--text-2); font-size: 12px; }
+.design-switch { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--card-border); border-radius: 13px; background: var(--field); }
+.design-switch button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 36px; padding: 7px 13px; border: 0; border-radius: 9px; background: transparent; color: var(--text-2); font-size: 12px; font-weight: 600; cursor: pointer; }
+.design-switch button span { font-size: 10px; font-weight: 400; opacity: .75; }
+.design-switch button:hover { background: var(--tile); }
+.design-switch button[aria-pressed='true'] { background: var(--text-1); color: var(--bg-2); box-shadow: 0 2px 6px #0000000c; }
+
+/* Astra: papper, skogsgrönt och aprikos. Alla regler är isolerade från originalet. */
+:root[data-design='astra'] {
+  color-scheme: light;
+  --astra-page: #f5f4ee;
+  --text-1: #233e35;
+  --text-2: #54665d;
+  --text-3: #69756d;
+  --card: #fffefa;
+  --card-border: #dfe3d9;
+  --tile: #edf0e7;
+  --field: #fffefa;
+  --field-focus: #ffffff;
+  --field-ring: #dce6dc;
+  --track: #e5e8de;
+  --skel: #dce3d8;
+  --skel-shine: #ffffff66;
+  --popover: #fffefa;
+  --accent: #b5682d;
+  --drop: #46878b;
+  --shadow: 0 12px 30px #233e3505;
+  --maxw: 1280px;
+  --gap: 22px;
+  --radius-lg: 22px;
+  --radius-md: 12px;
+}
+:root[data-design='astra'][data-theme='dark'] {
+  color-scheme: dark;
+  --astra-page: #14231e;
+  --text-1: #f0f1e6;
+  --text-2: #c0cec0;
+  --text-3: #9bad9f;
+  --card: #1d3028;
+  --card-border: #35493d;
+  --tile: #2a4135;
+  --field: #1d3028;
+  --field-focus: #2a4135;
+  --field-ring: #35493d;
+  --track: #3a5142;
+  --skel: #35493d;
+  --skel-shine: #ffffff14;
+  --popover: #243b30;
+  --accent: #eeb785;
+  --drop: #8dc5ca;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-design='astra'][data-theme='auto'] {
+    color-scheme: dark;
+    --astra-page: #14231e;
+    --text-1: #f0f1e6;
+    --text-2: #c0cec0;
+    --text-3: #9bad9f;
+    --card: #1d3028;
+    --card-border: #35493d;
+    --tile: #2a4135;
+    --field: #1d3028;
+    --field-focus: #2a4135;
+    --field-ring: #35493d;
+    --track: #3a5142;
+    --skel: #35493d;
+    --skel-shine: #ffffff14;
+    --popover: #243b30;
+    --accent: #eeb785;
+    --drop: #8dc5ca;
+  }
+}
+:root[data-design='astra'] body { background: var(--astra-page); }
+:root[data-design='astra'] .bg { display: none; }
+:root[data-design='astra'] [hidden] { display: none !important; }
+:root[data-design='astra'] .astra-only { display: block; }
+:root[data-design='astra'] .topbar { position: relative; padding: 24px 32px; padding-top: calc(24px + env(safe-area-inset-top)); gap: 44px; }
+:root[data-design='astra'] .topbar::before { inset: 0 32px; background: none; border-bottom: 1px solid var(--card-border); }
+:root[data-design='astra'] .brand { gap: 9px; }
+:root[data-design='astra'] .brand__text { font-size: 19px; letter-spacing: -.7px; }
+:root[data-design='astra'] .brand__text small { margin-top: 6px; font-size: 9px; letter-spacing: 2px; }
+:root[data-design='astra'] .brand__mark { padding: 3px; background: #e6ebdd; border-radius: 13px; }
+:root[data-design='astra'] .brand__mark svg { filter: none; }
+:root[data-design='astra'] .search { max-width: 430px; justify-self: end; }
+:root[data-design='astra'] .search__icon { z-index: 1; }
+:root[data-design='astra'] .search__input { border-radius: 12px; height: 46px; font-size: 13px; }
+:root[data-design='astra'] .icon-btn { border-radius: 12px; background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
+:root[data-design='astra'] .icon-btn:hover { background: var(--tile); }
+:root[data-design='astra'] .app { padding: 0 32px calc(28px + env(safe-area-inset-bottom)); }
+:root[data-design='astra'] .design-bar { margin: 20px 0 26px; }
+:root[data-design='astra'] .design-switch { background: var(--tile); border-color: transparent; }
+:root[data-design='astra'] .design-switch button[aria-pressed='true'] { background: var(--text-1); color: var(--astra-page); }
+:root[data-design='astra'] .astra-intro { display: flex; justify-content: space-between; gap: 20px; align-items: flex-end; margin-bottom: 30px; }
+:root[data-design='astra'] .astra-eyebrow { font-size: 10px; font-weight: 600; letter-spacing: 2.4px; color: var(--text-3); margin-bottom: 9px; }
+:root[data-design='astra'] .astra-intro h2 { font-size: clamp(28px, 3.5vw, 42px); font-weight: 500; letter-spacing: -1.9px; line-height: 1.15; }
+:root[data-design='astra'] .astra-intro > p { color: var(--text-2); font-size: 12px; line-height: 1.8; text-align: right; }
+:root[data-design='astra'] .grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'hero' 'hourly' 'daily' 'details'; }
+:root[data-design='astra'] .card { padding: 24px; box-shadow: var(--shadow); backdrop-filter: none; -webkit-backdrop-filter: none; }
+:root[data-design='astra'] .card::before { display: none; }
+:root[data-design='astra'] .card__head { align-items: center; margin-bottom: 20px; }
+:root[data-design='astra'] .card__title { text-transform: none; font-size: 16px; font-weight: 600; letter-spacing: -.4px; color: var(--text-1); }
+:root[data-design='astra'] .card__hint { font-size: 10px; }
+:root[data-design='astra'] .hero {
+  --text-1: #fff9eb;
+  --text-2: #d6e1d0;
+  --text-3: #b5ccba;
+  --card-border: #ffffff30;
+  --tile: #ffffff15;
+  --skel: #ffffff18;
+  --skel-shine: #ffffff20;
+  --accent: #ffd398;
+  background: #234e40;
+  border-color: #234e40;
+  color: var(--text-1);
+  padding: 30px;
+  min-height: 342px;
+  isolation: isolate;
+}
+:root[data-design='astra'] .hero .astra-landscape { position: absolute; z-index: -1; width: 76%; height: 100%; right: 0; bottom: 0; pointer-events: none; opacity: .9; mask-image: linear-gradient(90deg, transparent, #000 25%); }
+:root[data-design='astra'] .astra-orbit { fill: none; stroke: #d0ddba; stroke-opacity: .13; stroke-width: 1; }
+:root[data-design='astra'] body[data-weather$='night'] .hero { background: #1b3841; border-color: #1b3841; }
+:root[data-design='astra'] body[data-weather$='night'] .astra-landscape { opacity: .5; }
+:root[data-design='astra'] body[data-weather^='rain'] .astra-landscape,
+:root[data-design='astra'] body[data-weather^='fog'] .astra-landscape { opacity: .5; }
+:root[data-design='astra'] .hero__eyebrow { display: flex; gap: 7px; align-items: center; text-transform: uppercase; font-size: 9px; font-weight: 500; letter-spacing: 1.8px; color: var(--text-2); margin-bottom: 6px; }
+:root[data-design='astra'] .hero__eyebrow span { width: 5px; height: 5px; border-radius: 50%; background: #dbdca4; }
+:root[data-design='astra'] .hero__place { font-size: clamp(28px, 3vw, 36px); letter-spacing: -1.2px; font-weight: 500; }
+:root[data-design='astra'] .hero__sub { font-size: 11px; max-width: 340px; line-height: 1.7; }
+:root[data-design='astra'] .hero__top .fav-btn { margin-top: -24px; border-radius: 50%; }
+:root[data-design='astra'] .hero__main { flex-direction: row-reverse; justify-content: space-between; flex-wrap: nowrap; margin: 10px 0 0; padding: 10px 0 4px; gap: 0; }
+:root[data-design='astra'] .hero__temp { font-size: clamp(82px, 8.5vw, 112px); font-weight: 300; letter-spacing: -7px; }
+:root[data-design='astra'] .hero__unit { font-size: .25em; padding-left: 5px; margin-top: 10px; }
+:root[data-design='astra'] .hero__icon { margin: -22px 28px 0 0; }
+:root[data-design='astra'] .hero__icon svg { width: 140px; filter: drop-shadow(0 12px 20px #102e3040); }
+:root[data-design='astra'] .hero__desc { margin-top: 5px; font-size: 17px; font-weight: 400; }
+:root[data-design='astra'] .hero__range { font-size: 11px; margin-top: 6px; gap: 16px; }
+:root[data-design='astra'] .hero__range b { font-weight: 500; }
+:root[data-design='astra'] .hourly { padding-bottom: 18px; }
+:root[data-design='astra'] .hourly .card__head { margin-bottom: 12px; }
+:root[data-design='astra'] .hour { flex-basis: 73px; gap: 7px; padding: 12px 4px; border-radius: 12px; }
+:root[data-design='astra'] .hour:first-child { background: #eee4d4; color: #34493c; }
+:root[data-design='astra'] .hour:first-child .hour__time,
+:root[data-design='astra'] .hour:first-child .hour__prob { color: #5f624e; }
+:root[data-design='astra'] .hour__time { font-size: 10px; }
+:root[data-design='astra'] .hour__temp { font-weight: 500; font-size: 18px; }
+:root[data-design='astra'] .hour__prob { font-size: 10px; }
+:root[data-design='astra'] .hour--sep { flex-basis: auto; font-size: 10px; }
+:root[data-design='astra'] .daily { display: flex; flex-direction: column; }
+:root[data-design='astra'] .daily__list { flex: 1; justify-content: space-between; }
+:root[data-design='astra'] .day { grid-template-columns: 53px 32px 35px 28px minmax(24px, 1fr) 28px; gap: 7px; padding: 16px 0; border-radius: 0; }
+:root[data-design='astra'] .day__name { font-size: 12px; font-weight: 500; }
+:root[data-design='astra'] .day__name small { font-size: 10px; margin-top: 6px; }
+:root[data-design='astra'] .day__prob { font-size: 10px; }
+:root[data-design='astra'] .day__min,
+:root[data-design='astra'] .day__max { font-size: 13px; }
+:root[data-design='astra'] .day__bar { height: 4px; }
+:root[data-design='astra'] .details { padding: 0; background: transparent; border: 0; box-shadow: none; overflow: visible; }
+:root[data-design='astra'] .stats { gap: 12px; }
+:root[data-design='astra'] .stat { position: relative; min-height: 148px; padding: 20px 17px 17px; border: 1px solid var(--card-border); background: var(--card); border-radius: 16px; gap: 8px; }
+:root[data-design='astra'] .stat::before { content: ''; display: block; width: 18px; height: 3px; background: #cc9865; border-radius: 2px; margin-bottom: 4px; }
+:root[data-design='astra'] .stat:nth-child(2n)::before { background: #6d9682; }
+:root[data-design='astra'] .stat:nth-child(3n)::before { background: #7d9da8; }
+:root[data-design='astra'] .stat__label { font-size: 11px; }
+:root[data-design='astra'] .stat__value { font-size: 25px; letter-spacing: -.8px; font-weight: 500; margin: 0; }
+:root[data-design='astra'] .stat__value--compact { font-size: 14px; letter-spacing: -.3px; gap: 4px; }
+:root[data-design='astra'] .stat__note { font-size: 10px; line-height: 1.5; }
+:root[data-design='astra'] .chip { border-radius: 10px; backdrop-filter: none; -webkit-backdrop-filter: none; }
+:root[data-design='astra'] .chip.is-active { background: var(--text-1); color: var(--astra-page); }
+:root[data-design='astra'] .chip.is-active .chip__remove { color: inherit; }
+:root[data-design='astra'] .footer { border-top: 1px solid var(--card-border); padding-top: 22px; margin-top: 28px; font-size: 10px; }
+:root[data-design='astra'] body[data-state='error'] .daily { display: none; }
+:root[data-design='astra'] body[data-state='error'] .grid { grid-template-areas: 'hero'; grid-template-columns: 1fr; }
+@media (min-width: 1000px) {
+  :root[data-design='astra'] .grid { grid-template-columns: minmax(0, 1.7fr) minmax(340px, 1fr); grid-template-areas: 'hero daily' 'hourly daily' 'details details'; }
+  :root[data-design='astra'] .stats { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+@media (min-width: 600px) and (max-width: 999px) {
+  :root[data-design='astra'] .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 719px) {
+  .design-bar { justify-content: space-between; gap: 8px; }
+  .design-switch button { padding: 7px 10px; }
+  .design-switch button span { display: none; }
+  :root[data-design='astra'] .topbar { padding: 18px 20px; padding-top: calc(18px + env(safe-area-inset-top)); gap: 16px 10px; }
+  :root[data-design='astra'] .topbar::before { inset: 0 20px; }
+  :root[data-design='astra'] .brand__text { font-size: 16px; }
+  :root[data-design='astra'] .brand__mark { padding: 0; }
+  :root[data-design='astra'] .actions { gap: 5px; }
+  :root[data-design='astra'] .search { max-width: none; }
+  :root[data-design='astra'] .app { padding: 0 20px calc(24px + env(safe-area-inset-bottom)); }
+  :root[data-design='astra'] .design-bar { margin: 17px 0 26px; }
+  :root[data-design='astra'] .astra-intro { margin-bottom: 23px; }
+  :root[data-design='astra'] .astra-intro > p { display: none; }
+  :root[data-design='astra'] .astra-intro h2 { letter-spacing: -1.2px; font-size: 32px; }
+  :root[data-design='astra'] .hero { min-height: 330px; padding: 24px; }
+  :root[data-design='astra'] .hero__sub { max-width: 240px; }
+  :root[data-design='astra'] .hero__temp { font-size: 88px; letter-spacing: -5px; }
+  :root[data-design='astra'] .hero__icon { margin: 0 -8px 0 0; }
+  :root[data-design='astra'] .hero__icon svg { width: 110px; }
+  :root[data-design='astra'] .hero .astra-landscape { width: 100%; opacity: .65; }
+  :root[data-design='astra'] .day { grid-template-columns: 60px 36px 40px 32px minmax(20px, 1fr) 32px; }
+  :root[data-design='astra'] .card__head { gap: 6px; }
+}
+@media (max-width: 380px) {
+  :root[data-design='astra'] .topbar { padding-left: 14px; padding-right: 14px; }
+  :root[data-design='astra'] .brand__mark { display: none; }
+  :root[data-design='astra'] .app { padding-left: 14px; padding-right: 14px; }
+  :root[data-design='astra'] .card { padding: 18px; }
+  :root[data-design='astra'] .details { padding: 0; }
+  :root[data-design='astra'] .hero__icon svg { width: 88px; }
+  :root[data-design='astra'] .hero__temp { font-size: 76px; }
+  :root[data-design='astra'] .day { grid-template-columns: 48px 30px 30px 27px minmax(16px, 1fr) 27px; gap: 5px; }
+  :root[data-design='astra'] .card__hint { font-size: 9px; }
+}

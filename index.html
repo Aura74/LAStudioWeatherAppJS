@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="sv" data-theme="auto">
+<html lang="sv" data-theme="auto" data-design="claude">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -13,6 +13,8 @@
   <link rel="preconnect" href="https://api.open-meteo.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/astra.css">
+  <script src="assets/js/design.js"></script>
 
   <!-- PWA – installerbar app -->
   <link rel="manifest" href="manifest.webmanifest">
@@ -88,12 +90,33 @@
   </header>
 
   <main class="app">
+    <div class="design-bar">
+      <span class="design-bar__label">Jämför design</span>
+      <div class="design-switch" role="group" aria-label="Välj design">
+        <button type="button" data-design-choice="claude" aria-pressed="true">Claude Code <span>Original</span></button>
+        <button type="button" data-design-choice="astra" aria-pressed="false"><svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><path d="m10 1 2.4 6.6L19 10l-6.6 2.4L10 19l-2.4-6.6L1 10l6.6-2.4Z" fill="currentColor"/></svg>Astra <span>Ny design</span></button>
+      </div>
+    </div>
+    <div class="astra-intro astra-only">
+      <div><p class="astra-eyebrow">DIN DAG, I DET FRIA</p><h2>Himlen sätter tonen.</h2></div>
+      <p>Lite koll. Mer uteliv.<br>Din prognos för veckan som kommer.</p>
+    </div>
     <nav class="favorites" id="favorites" aria-label="Favoritorter" hidden>
       <div class="favorites__list" id="favorites-list"></div>
     </nav>
 
     <div class="grid">
       <section class="card hero" id="hero" aria-live="polite" aria-busy="true">
+        <svg class="astra-landscape astra-only" viewBox="0 0 600 460" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+          <defs><linearGradient id="astra-hill" x2="0" y2="1"><stop stop-color="#779b89"/><stop offset="1" stop-color="#426e60"/></linearGradient></defs>
+          <circle class="astra-orbit" cx="405" cy="178" r="131"/><circle class="astra-orbit" cx="405" cy="178" r="169"/>
+          <path fill="#365e53" d="M0 370Q100 280 213 312T430 282T650 293V460H0Z"/>
+          <path fill="url(#astra-hill)" d="M0 420Q140 368 257 350T444 325T650 358V460H0Z"/>
+          <path fill="#173e35" d="M0 438Q114 411 225 430T448 394T650 407V460H0Z"/>
+          <path fill="none" stroke="#b8c9a5" stroke-opacity=".3" stroke-width="1.5" d="M422 336Q258 385 372 407T330 460"/>
+          <g fill="#153d34"><path d="m523 278-18 41h10l-17 30h18v35h11v-35h19l-17-30h11Z"/><path d="m560 298-14 33h8l-13 23h14v28h9v-28h15l-14-23h9Z"/></g>
+        </svg>
+        <p class="hero__eyebrow astra-only"><span></span>Vädret just nu</p>
         <div class="hero__top">
           <div class="hero__where">
             <h1 class="hero__place" id="hero-place"><span class="skel skel--title"></span></h1>
