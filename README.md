@@ -17,7 +17,7 @@ Visar vädret just nu, timme för timme och sju dagar framåt för valfri ort i 
 - **Favoriter** – spara orter med stjärnan, byt snabbt via chips. Sparas i webbläsaren.
 - **Mörkt/ljust tema** – följer systemet, kan växlas manuellt. Bakgrunden skiftar färg efter vädret och tid på dygnet.
 - **°C / °F**.
-- **Två designer att jämföra** – välj **Claude Code · Original** eller **Astra · Ny design** ovanför prognosen. Originalet är förvalt; ditt val sparas. Växlingen behåller ort, prognos, favoriter, temperaturenhet och ljust/mörkt tema. Astra har en separat stilmall med skogsgrönt, varmvit bakgrund, landskapsillustration och en annan responsiv layout.
+- **Tre designer att jämföra** – välj **Claude Code · Original**, **Astra · Ny design** eller **Grok · Observatorium** ovanför prognosen. Originalet är förvalt; ditt val sparas. Växlingen behåller ort, prognos, favoriter, temperaturenhet och ljust/mörkt tema. Astra har en separat stilmall med skogsgrönt, varmvit bakgrund, landskapsillustration och en annan layout. Grok är ett mörkt observatorium: himlen ritas om efter vädret, temperaturen står i en antikva, och prognosen får en temperaturkurva och en solbåge. `?design=grok` (eller `astra` / `claude`) visar den designen utan att skriva över ett sparat val.
 - **Installerbar app (PWA)** med egen ikon, fungerar offline med senast hämtade prognos.
 - Kommer ihåg senast visade ort. Uppdaterar automatiskt var 15:e minut.
 
@@ -41,6 +41,7 @@ sw.js                    Service worker – offline-cache
 assets/
   css/style.css          Designtokens, teman, vädergradienter, layout
   css/astra.css          Isolerad Astra-design och gemensam designväljare
+  css/grok.css           Isolerad Grok-design (observatorium)
   js/design.js           Designbyte och sparat designval
   js/app.js              Huvudlogik: tillstånd, händelser, rendering
   js/api.js              Open-Meteo (väder + ortsök) och omvänd geokodning

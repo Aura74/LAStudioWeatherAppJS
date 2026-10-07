@@ -11,9 +11,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://api.open-meteo.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="stylesheet" href="assets/css/astra.css">
+  <link rel="stylesheet" href="assets/css/grok.css">
   <script src="assets/js/design.js"></script>
 
   <!-- PWA – installerbar app -->
@@ -35,6 +36,107 @@
   <div class="bg" aria-hidden="true">
     <div class="bg__glow bg__glow--a"></div>
     <div class="bg__glow bg__glow--b"></div>
+  </div>
+
+  <div class="grok-sky grok-only" aria-hidden="true">
+    <div class="grok-sky__wash"></div>
+    <svg class="grok-sky__atmos" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMin slice">
+      <defs>
+        <linearGradient id="gx-aurora-a" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#8ef0c2" stop-opacity="0"/>
+          <stop offset="0.35" stop-color="#7dffe0" stop-opacity=".55"/>
+          <stop offset="0.7" stop-color="#8aa8ff" stop-opacity=".4"/>
+          <stop offset="1" stop-color="#8ef0c2" stop-opacity="0"/>
+        </linearGradient>
+        <linearGradient id="gx-aurora-b" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0" stop-color="#6ea8ff" stop-opacity="0"/>
+          <stop offset="0.5" stop-color="#d7c4ff" stop-opacity=".35"/>
+          <stop offset="1" stop-color="#6ea8ff" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <g class="gx-stars" fill="#fff">
+        <circle cx="80" cy="70" r="1.2"/><circle cx="140" cy="140" r="1.6"/><circle cx="210" cy="48" r="1"/>
+        <circle cx="280" cy="180" r="1.3"/><circle cx="340" cy="90" r="1.8"/><circle cx="410" cy="40" r="1.1"/>
+        <circle cx="470" cy="150" r="1.4"/><circle cx="540" cy="70" r="1"/><circle cx="600" cy="200" r="1.7"/>
+        <circle cx="670" cy="46" r="1.2"/><circle cx="730" cy="130" r="1.5"/><circle cx="800" cy="80" r="1.1"/>
+        <circle cx="860" cy="190" r="1.8"/><circle cx="930" cy="54" r="1.3"/><circle cx="990" cy="150" r="1"/>
+        <circle cx="1060" cy="90" r="1.6"/><circle cx="1120" cy="40" r="1.2"/><circle cx="170" cy="240" r="1"/>
+        <circle cx="250" cy="300" r="1.4"/><circle cx="390" cy="260" r="1.1"/><circle cx="520" cy="280" r="1.5"/>
+        <circle cx="760" cy="250" r="1.2"/><circle cx="880" cy="300" r="1"/><circle cx="1040" cy="230" r="1.4"/>
+        <circle cx="60" cy="160" r="1"/><circle cx="640" cy="120" r="1.3"/><circle cx="1180" cy="180" r="1.1"/>
+      </g>
+      <g class="gx-aurora">
+        <path fill="url(#gx-aurora-a)" d="M-40 210C180 120 320 250 560 170S920 80 1260 190V300C980 230 760 320 520 250S140 300-40 250Z"/>
+        <path fill="url(#gx-aurora-b)" d="M-20 250C200 180 420 300 700 200S1040 160 1240 240V340C900 280 640 360 360 270S80 320-20 290Z"/>
+      </g>
+      <g class="gx-fog" fill="#fff">
+        <ellipse cx="420" cy="430" rx="520" ry="70" opacity=".22"/>
+        <ellipse cx="860" cy="470" rx="480" ry="64" opacity=".16"/>
+        <ellipse cx="600" cy="520" rx="700" ry="80" opacity=".12"/>
+      </g>
+    </svg>
+    <svg class="grok-sky__art" viewBox="0 0 780 620" preserveAspectRatio="xMaxYMin meet">
+      <defs>
+        <radialGradient id="gx-sun-glow" cx="50%" cy="50%" r="50%">
+          <stop offset="0" stop-color="#ffe1a8" stop-opacity=".95"/>
+          <stop offset=".42" stop-color="#ffb15a" stop-opacity=".38"/>
+          <stop offset="1" stop-color="#ffb15a" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="gx-sun-core" cx="38%" cy="36%" r="65%">
+          <stop offset="0" stop-color="#fffaf0"/>
+          <stop offset=".62" stop-color="#ffd27a"/>
+          <stop offset="1" stop-color="#ff9b3a"/>
+        </radialGradient>
+        <mask id="gx-moon-mask">
+          <rect width="780" height="620" fill="#fff"/>
+          <circle cx="628" cy="270" r="46" fill="#000"/>
+        </mask>
+      </defs>
+      <g class="gx-sun">
+        <circle cx="590" cy="300" r="118" fill="url(#gx-sun-glow)"/>
+        <circle cx="590" cy="300" r="78" fill="none" stroke="#e6c98a" stroke-opacity=".28"/>
+        <circle cx="590" cy="300" r="104" fill="none" stroke="#e6c98a" stroke-opacity=".16"/>
+        <circle cx="590" cy="300" r="40" fill="url(#gx-sun-core)"/>
+      </g>
+      <g class="gx-moon">
+        <circle cx="590" cy="302" r="108" fill="#f4ecd8" opacity=".08"/>
+        <circle cx="590" cy="300" r="86" fill="none" stroke="#f4ecd8" stroke-opacity=".2"/>
+        <circle cx="568" cy="294" r="46" fill="#f7f1e2" mask="url(#gx-moon-mask)"/>
+      </g>
+      <g class="gx-clouds">
+        <ellipse cx="300" cy="250" rx="120" ry="34"/>
+        <ellipse cx="400" cy="228" rx="100" ry="40"/>
+        <ellipse cx="490" cy="252" rx="90" ry="30"/>
+        <ellipse cx="180" cy="286" rx="86" ry="26" opacity=".65"/>
+        <ellipse cx="560" cy="300" rx="110" ry="28" opacity=".55"/>
+      </g>
+      <g class="gx-storm">
+        <ellipse cx="250" cy="310" rx="150" ry="40"/>
+        <ellipse cx="420" cy="286" rx="130" ry="46"/>
+        <ellipse cx="560" cy="320" rx="120" ry="34"/>
+        <ellipse cx="640" cy="274" rx="80" ry="28"/>
+      </g>
+      <path class="gx-bolt" d="M455 196l-28 58h26l-36 78 64-70h-28z"/>
+    </svg>
+    <svg class="grok-sky__fall" viewBox="0 0 400 800" preserveAspectRatio="none">
+      <g class="gx-rain">
+        <line x1="16" y1="20" x2="10" y2="46"/><line x1="48" y1="70" x2="42" y2="98"/>
+        <line x1="78" y1="10" x2="72" y2="40"/><line x1="110" y1="90" x2="104" y2="122"/>
+        <line x1="142" y1="30" x2="136" y2="58"/><line x1="176" y1="80" x2="170" y2="112"/>
+        <line x1="206" y1="16" x2="200" y2="44"/><line x1="238" y1="64" x2="232" y2="96"/>
+        <line x1="270" y1="24" x2="264" y2="54"/><line x1="302" y1="86" x2="296" y2="118"/>
+        <line x1="334" y1="12" x2="328" y2="42"/><line x1="366" y1="58" x2="360" y2="90"/>
+        <line x1="30" y1="130" x2="24" y2="156"/><line x1="96" y1="150" x2="90" y2="178"/>
+        <line x1="160" y1="124" x2="154" y2="154"/><line x1="224" y1="140" x2="218" y2="170"/>
+        <line x1="288" y1="128" x2="282" y2="158"/><line x1="352" y1="146" x2="346" y2="176"/>
+      </g>
+      <g class="gx-snow" fill="#fff">
+        <circle cx="24" cy="30" r="2.2"/><circle cx="70" cy="80" r="1.6"/><circle cx="120" cy="24" r="2.6"/>
+        <circle cx="168" cy="96" r="1.8"/><circle cx="214" cy="40" r="2.1"/><circle cx="260" cy="110" r="1.5"/>
+        <circle cx="308" cy="28" r="2.4"/><circle cx="352" cy="84" r="1.7"/><circle cx="46" cy="150" r="1.4"/>
+        <circle cx="140" cy="160" r="2"/><circle cx="230" cy="148" r="1.6"/><circle cx="320" cy="156" r="2.2"/>
+      </g>
+    </svg>
   </div>
 
   <header class="topbar">
@@ -95,6 +197,7 @@
       <div class="design-switch" role="group" aria-label="Välj design">
         <button type="button" data-design-choice="claude" aria-pressed="true">Claude Code <span>Original</span></button>
         <button type="button" data-design-choice="astra" aria-pressed="false"><svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><path d="m10 1 2.4 6.6L19 10l-6.6 2.4L10 19l-2.4-6.6L1 10l6.6-2.4Z" fill="currentColor"/></svg>Astra <span>Ny design</span></button>
+        <button type="button" data-design-choice="grok" aria-pressed="false"><svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><circle cx="10" cy="10" r="6.4" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="2" fill="currentColor"/></svg>Grok <span>Observatorium</span></button>
       </div>
     </div>
     <div class="astra-intro astra-only">
@@ -117,6 +220,7 @@
           <g fill="#153d34"><path d="m523 278-18 41h10l-17 30h18v35h11v-35h19l-17-30h11Z"/><path d="m560 298-14 33h8l-13 23h14v28h9v-28h15l-14-23h9Z"/></g>
         </svg>
         <p class="hero__eyebrow astra-only"><span></span>Vädret just nu</p>
+        <p class="grok-kicker grok-only"><span></span>Grok <span class="grok-kicker__sub">Observatorium</span></p>
         <div class="hero__top">
           <div class="hero__where">
             <h1 class="hero__place" id="hero-place"><span class="skel skel--title"></span></h1>
@@ -128,6 +232,8 @@
             </svg>
           </button>
         </div>
+        <p class="grok-line grok-only" id="grok-line"></p>
+        <p class="grok-aside grok-only" id="grok-aside"></p>
         <div class="hero__main">
           <div class="hero__icon" id="hero-icon"><span class="skel skel--icon"></span></div>
           <div class="hero__temp">
@@ -137,9 +243,24 @@
         </div>
         <p class="hero__desc" id="hero-desc"><span class="skel skel--text"></span></p>
         <p class="hero__range" id="hero-range"></p>
+        <div class="grok-dial grok-only" id="grok-dial" hidden>
+          <svg class="grok-dial__svg" viewBox="0 0 320 86" aria-hidden="true">
+            <path class="grok-dial__track" d="M18 70 Q160 8 302 70"/>
+            <path class="grok-dial__progress" id="grok-dial-progress" d="M18 70 Q160 8 302 70" pathLength="100"/>
+            <circle id="grok-sun-dot" cx="18" cy="70" r="4.5"/>
+          </svg>
+          <div class="grok-dial__meta">
+            <span id="grok-rise"></span>
+            <span id="grok-dial-note"></span>
+            <span id="grok-set"></span>
+          </div>
+        </div>
       </section>
 
       <section class="card details" aria-label="Detaljer just nu">
+        <div class="card__head grok-only">
+          <h2 class="card__title">Just nu</h2>
+        </div>
         <div class="stats" id="stats"></div>
       </section>
 
@@ -148,6 +269,7 @@
           <h2 class="card__title" id="hourly-title">Kommande timmar</h2>
           <span class="card__hint" id="hourly-hint"></span>
         </div>
+        <div class="grok-spark grok-only" id="grok-spark" aria-hidden="true"></div>
         <div class="hourly__scroller" id="hourly" tabindex="0"></div>
       </section>
 

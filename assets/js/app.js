@@ -400,7 +400,14 @@ function toggleTheme() {
 function syncThemeColor() {
   // Läs den faktiska bakgrundsfärgen (styrs av data-weather + tema i CSS).
   requestAnimationFrame(() => {
-    const c = getComputedStyle(els.body).getPropertyValue(els.html.dataset.design === 'astra' ? '--astra-page' : '--bg-1').trim();
+    const design = els.html.dataset.design;
+    if (design === 'grok') {
+      const sky = document.querySelector('.grok-sky');
+      const c = sky ? getComputedStyle(sky).backgroundColor : '';
+      if (c && c !== 'transparent' && c !== 'rgba(0, 0, 0, 0)') els.themeColor.setAttribute('content', c);
+      return;
+    }
+    const c = getComputedStyle(els.body).getPropertyValue(design === 'astra' ? '--astra-page' : '--bg-1').trim();
     if (c) els.themeColor.setAttribute('content', c);
   });
 }
@@ -434,6 +441,7 @@ function setLoading() {
   els.hourly.innerHTML = Array.from({ length: 8 }, () => '<div class="hour"><span class="skel skel--text"></span><span class="skel skel--icon-sm"></span><span class="skel skel--text"></span></div>').join('');
   els.daily.innerHTML = Array.from({ length: 7 }, () => '<li class="day"><span class="skel skel--text"></span><span class="skel skel--icon-sm"></span><span class="skel skel--bar"></span></li>').join('');
   els.updated.textContent = 'Hämtar…';
+  clearGrok();
 }
 
 function setError(message) {
@@ -450,6 +458,7 @@ function setError(message) {
   els.hourly.innerHTML = '';
   els.daily.innerHTML = '';
   els.updated.textContent = navigator.onLine ? '' : 'Du verkar vara offline';
+  clearGrok();
   showToast(message, { action: { label: 'Försök igen', onClick: () => state.place && loadPlace(state.place) }, duration: 8000 });
 }
 
@@ -500,6 +509,7 @@ function render() {
   const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   els.hourlyHint.textContent = d.timezone && d.timezone !== browserTz ? `Lokal tid (${d.timezone_abbreviation})` : '';
   els.updated.textContent = `Uppdaterad ${new Intl.DateTimeFormat('sv-SE', { hour: '2-digit', minute: '2-digit' }).format(new Date(state.fetchedAt))}`;
+  renderGrok();
 }
 
 function renderHourly(d, todayKey) {
@@ -652,6 +662,158 @@ function flag(cc) {
 function esc(s) {
   return String(s ?? '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ============================================================ Grok-temat
+
+const GROK_LINES = {
+  'clear-day': (name) => `Hög och klar himmel över ${name}.`,
+  'clear-night': (name) => `Stjärnklar natt över ${name}.`,
+  'partly-day': (name) => `Solglimtar mellan molnen över ${name}.`,
+  'partly-night': (name) => `Månen syns mellan molnen över ${name}.`,
+  'cloudy-day': (name) => `Ett jämnt molntäcke över ${name}.`,
+  'cloudy-night': (name) => `Molnen sluter himlen över ${name}.`,
+  'rain-day': (name) => `Regn över ${name}.`,
+  'rain-night': (name) => `Regn i natten över ${name}.`,
+  'snow-day': (name) => `Snöfall över ${name}.`,
+  'snow-night': (name) => `Snö i natten över ${name}.`,
+  'thunder-day': (name) => `Åska över ${name}.`,
+  'thunder-night': (name) => `Åska i natten över ${name}.`,
+  'fog-day': (name) => `Tät dimma över ${name}.`,
+  'fog-night': (name) => `Dimma i natten över ${name}.`,
+};
+
+const WIND_WORD = {
+  N: 'nordlig', NO: 'nordostlig', O: 'ostlig', SO: 'sydostlig',
+  S: 'sydlig', SV: 'sydvästlig', V: 'västlig', NV: 'nordvästlig',
+};
+
+function clearGrok() {
+  const line = $('grok-line');
+  const aside = $('grok-aside');
+  const dial = $('grok-dial');
+  const spark = $('grok-spark');
+  if (line) line.textContent = '';
+  if (aside) aside.textContent = '';
+  if (dial) dial.hidden = true;
+  if (spark) spark.replaceChildren();
+}
+
+function renderGrok() {
+  const d = state.data;
+  const cur = d?.current;
+  const line = $('grok-line');
+  const aside = $('grok-aside');
+  if (!line || !aside || !cur || !state.place) return;
+
+  const key = els.body.dataset.weather;
+  const say = GROK_LINES[key] ?? ((name) => `${describe(cur.weather_code).text} över ${name}.`);
+  line.textContent = say(state.place.name);
+
+  const bits = [];
+  if (cur.apparent_temperature != null && cur.temperature_2m != null
+      && Math.abs(Math.round(cur.apparent_temperature) - Math.round(cur.temperature_2m)) >= 2) {
+    bits.push(`Känns som ${fmt.formatTemp(cur.apparent_temperature)}`);
+  }
+  if (cur.wind_speed_10m != null) {
+    const label = fmt.windLabel(cur.wind_speed_10m);
+    const dir = WIND_WORD[fmt.compass(cur.wind_direction_10m)];
+    const speed = `${Math.round(cur.wind_speed_10m)} m/s`;
+    if (label === 'Lugnt') bits.push('Luften är stilla');
+    else if (label === 'Storm' || label === 'Orkan') bits.push(dir ? `${label}, ${dir} ${speed}` : `${label}, ${speed}`);
+    else bits.push(dir ? `${label.replace(/ vind$/, '')} ${dir} vind, ${speed}` : `${label}, ${speed}`);
+  }
+  aside.textContent = bits.length ? `${bits.join('. ')}.` : '';
+
+  renderGrokSpark(d);
+  renderGrokDial(d);
+}
+
+function renderGrokSpark(d) {
+  const el = $('grok-spark');
+  if (!el) return;
+  const h = d.hourly;
+  const start = Math.max(0, h.time.findIndex((t) => t >= d.current.time.slice(0, 13)));
+  const temps = [];
+  for (let i = start; i < Math.min(h.time.length, start + HOURS_TO_SHOW); i++) temps.push(h.temperature_2m[i]);
+  const known = temps.filter((t) => t != null && !Number.isNaN(t));
+  if (known.length < 2) { el.replaceChildren(); return; }
+
+  const min = Math.min(...known);
+  const max = Math.max(...known);
+  const span = Math.max(0.5, max - min);
+  const w = 1000;
+  const ht = 100;
+  const padY = 12;
+  const left = 10;
+  const right = 48;
+  const pts = [];
+  temps.forEach((t, i) => {
+    if (t == null || Number.isNaN(t)) return;
+    const x = left + (i / (temps.length - 1)) * (w - left - right);
+    const y = padY + (1 - (t - min) / span) * (ht - padY * 2);
+    pts.push([x, y]);
+  });
+  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ');
+  const fill = `${line} L${pts.at(-1)[0].toFixed(1)} ${ht} L${pts[0][0].toFixed(1)} ${ht} Z`;
+  el.innerHTML = `
+    <svg viewBox="0 0 ${w} ${ht}" preserveAspectRatio="none">
+      <path class="grok-spark__fill" d="${fill}"/>
+      <path class="grok-spark__line" d="${line}"/>
+    </svg>
+    <i class="grok-spark__now" style="left:${(pts[0][0] / w * 100).toFixed(2)}%;top:${(pts[0][1] / ht * 100).toFixed(2)}%"></i>
+    <span class="grok-spark__hi">${Math.round(max)}°</span>
+    <span class="grok-spark__lo">${Math.round(min)}°</span>`;
+}
+
+function renderGrokDial(d) {
+  const dial = $('grok-dial');
+  const today = dailyAt(d, 0);
+  if (!dial || !today?.sunrise || !today?.sunset) {
+    if (dial) dial.hidden = true;
+    return;
+  }
+  const now = new Date(d.current.time).getTime();
+  const rise = new Date(today.sunrise).getTime();
+  const set = new Date(today.sunset).getTime();
+  if (!Number.isFinite(now) || !Number.isFinite(rise) || set <= rise) {
+    dial.hidden = true;
+    return;
+  }
+
+  const t = (now - rise) / (set - rise);
+  const shown = Math.min(1, Math.max(0, t));
+  const point = arcPoint(shown);
+  const dot = $('grok-sun-dot');
+  const progress = $('grok-dial-progress');
+  if (dot) {
+    dot.setAttribute('cx', point.x.toFixed(1));
+    dot.setAttribute('cy', point.y.toFixed(1));
+  }
+  if (progress) progress.setAttribute('stroke-dasharray', `${(shown * 100).toFixed(1)} 100`);
+
+  const up = $('grok-rise');
+  const down = $('grok-set');
+  const note = $('grok-dial-note');
+  if (up) up.textContent = `Upp ${fmt.formatTime(today.sunrise)}`;
+  if (down) down.textContent = `Ner ${fmt.formatTime(today.sunset)}`;
+  if (note) {
+    if (t < 0) note.textContent = 'Före soluppgång';
+    else if (t > 1) note.textContent = 'Efter solnedgång';
+    else note.textContent = daylightNote(today.sunrise, today.sunset);
+  }
+  dial.classList.toggle('is-down', t < 0 || t > 1);
+  dial.hidden = false;
+}
+
+/** Punkt på solbågen. t = 0 vid uppgång, 1 vid nedgång. */
+function arcPoint(t) {
+  const u = Math.min(1, Math.max(0, t));
+  const o = 1 - u;
+  return {
+    x: o * o * 18 + 2 * o * u * 160 + u * u * 302,
+    y: o * o * 70 + 2 * o * u * 8 + u * u * 70,
+  };
 }
 
 // ============================================================ toast
