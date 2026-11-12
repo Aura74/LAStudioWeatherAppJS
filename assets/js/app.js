@@ -1,7 +1,7 @@
 // Vilket väder – huvudmodul.
 // Håller appens tillstånd, kopplar händelser och renderar vyerna.
 
-import { searchPlaces, fetchForecast, reverseGeocode, getCurrentPosition } from './api.js';
+import { searchPlaces, fetchForecast, reverseGeocode, getCurrentPosition, ApiError } from './api.js';
 import { describe, iconKey, themeKey } from './weather-codes.js';
 import { weatherIcon, ICON_DEFS } from './icons.js';
 import * as store from './storage.js';
@@ -16,7 +16,14 @@ const DEFAULT_PLACE = {
 const HOURS_TO_SHOW = 24;
 const AUTO_REFRESH_MS = 15 * 60 * 1000;
 const STALE_AFTER_MS = 10 * 60 * 1000;
+// "Just nu" i ett färskt svar är högst en kvart gammalt. Är det äldre än så här
+// kommer prognosen ur service workerns cache (offline) och ska inte kallas uppdaterad.
+const SAVED_FORECAST_AFTER_MS = 45 * 60 * 1000;
 const SEARCH_DEBOUNCE_MS = 220;
+const TOAST_FADE_MS = 250; // samma som övergången i .toast
+const BACKGROUND_FADE_MS = 1200; // samma som övergången på body i style.css och grok.css
+
+const systemDark = window.matchMedia('(prefers-color-scheme: dark)');
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -46,6 +53,9 @@ const els = {
   stats: $('stats'),
   hourly: $('hourly'),
   hourlyHint: $('hourly-hint'),
+  hourlyNavigation: $('hourly-navigation'),
+  hourlyPrev: $('hourly-prev'),
+  hourlyNext: $('hourly-next'),
   daily: $('daily'),
   updated: $('updated'),
   toast: $('toast'),
@@ -55,15 +65,18 @@ const els = {
 
 const state = {
   place: null,
-  data: null,
+  data: null,       // prognosen som visas, eller null medan vi laddar / vid fel
   fetchedAt: 0,
   settings: store.getSettings(),
   forecastAbort: null,
   searchAbort: null,
   searchTimer: null,
   searchResults: [],
+  searchQuery: '',  // söktexten som searchResults hör till
   activeIndex: -1,
   toastTimer: null,
+  toastHideTimer: null,
+  themeColorTimer: null,
 };
 
 // ============================================================ init
@@ -77,31 +90,30 @@ function init() {
   renderFavorites();
   migrateLegacyFavorites();
 
-  const start = store.getLastPlace() ?? DEFAULT_PLACE;
-  loadPlace(start);
+  const saved = store.getLastPlace();
+  loadPlace(saved ?? DEFAULT_PLACE);
 
-  // Har användaren redan gett tillåtelse tidigare: byt tyst till riktig position.
-  if (!store.getLastPlace() && navigator.permissions?.query) {
+  // Första besöket, och platsåtkomst är redan beviljad: byt tyst till riktig position.
+  if (!saved && navigator.permissions?.query) {
     navigator.permissions.query({ name: 'geolocation' })
       .then((p) => { if (p.state === 'granted') locate({ quiet: true }); })
       .catch(() => {});
   }
 
   setInterval(() => {
-    if (document.visibilityState === 'visible' && state.place) loadPlace(state.place, { silent: true });
+    if (document.visibilityState === 'visible') refresh({ quiet: true });
   }, AUTO_REFRESH_MS);
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && state.place && Date.now() - state.fetchedAt > STALE_AFTER_MS) {
-      loadPlace(state.place, { silent: true });
+    if (document.visibilityState === 'visible' && Date.now() - state.fetchedAt > STALE_AFTER_MS) {
+      refresh({ quiet: true });
     }
   });
 
-  window.addEventListener('online', () => {
-    if (state.place) loadPlace(state.place, { silent: true });
-  });
+  window.addEventListener('online', () => refresh({ quiet: true }));
 
   registerServiceWorker();
+  els.html.dataset.app = 'started'; // kvitto till boot-guard.js: appen kom igång
 }
 
 function bindEvents() {
@@ -123,27 +135,67 @@ function bindEvents() {
   els.btnUnit.addEventListener('click', toggleUnit);
   els.btnTheme.addEventListener('click', toggleTheme);
   document.addEventListener('designchange', syncThemeColor);
+  document.addEventListener('designchange', () => requestAnimationFrame(syncHourlyNavigation));
   els.btnFav.addEventListener('click', toggleFavorite);
-  els.btnRefresh.addEventListener('click', () => state.place && loadPlace(state.place));
+  els.btnRefresh.addEventListener('click', () => refresh());
 
   els.favoritesList.addEventListener('click', onFavoritesClick);
+  els.hourly.addEventListener('wheel', onHourlyWheel, { passive: false });
+  els.hourly.addEventListener('scroll', syncHourlyNavigation, { passive: true });
+  els.hourlyPrev.addEventListener('click', () => scrollHours(-1));
+  els.hourlyNext.addEventListener('click', () => scrollHours(1));
+  new ResizeObserver(syncHourlyNavigation).observe(els.hourly);
 
-  // Musdrag i timprognosen → horisontell scroll (utöver vanlig touch/hjul).
-  els.hourly.addEventListener('wheel', (e) => {
-    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-      els.hourly.scrollLeft += e.deltaY;
-      e.preventDefault();
-    }
-  }, { passive: false });
-
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  systemDark.addEventListener('change', () => {
     if (state.settings.theme === 'auto') syncThemeColor();
   });
 }
 
+// Lämna överlapp även när scroll-snap justerar till närmaste timkort.
+function scrollHours(direction) {
+  const hourWidth = els.hourly.querySelector('.hour')?.getBoundingClientRect().width ?? 73;
+  els.hourly.scrollBy({
+    left: direction * Math.max(hourWidth, els.hourly.clientWidth - 2 * hourWidth),
+    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+  });
+}
+
+function syncHourlyNavigation() {
+  const max = els.hourly.scrollWidth - els.hourly.clientWidth;
+  els.hourlyNavigation.hidden = els.html.dataset.design !== 'astra'
+    || els.body.dataset.state !== 'ready' || max <= 1;
+  els.hourlyPrev.disabled = els.hourly.scrollLeft <= 1;
+  els.hourlyNext.disabled = els.hourly.scrollLeft >= max - 1;
+}
+
+/**
+ * Mushjul över timprognosen rullar raden i sidled. Vid radens ändar släpps
+ * hjulet igenom till sidan, så att man aldrig fastnar ovanför den.
+ */
+function onHourlyWheel(e) {
+  if (e.ctrlKey || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+  const el = els.hourly;
+  const max = el.scrollWidth - el.clientWidth;
+  const atEnd = e.deltaY < 0 ? el.scrollLeft <= 0 : el.scrollLeft >= max - 1;
+  if (max <= 0 || atEnd) return;
+
+  // deltaY anges i pixlar, rader eller sidor beroende på webbläsare och mus.
+  const unit = e.deltaMode === WheelEvent.DOM_DELTA_LINE ? 32
+    : e.deltaMode === WheelEvent.DOM_DELTA_PAGE ? el.clientWidth : 1;
+  el.scrollLeft += e.deltaY * unit;
+  e.preventDefault();
+}
+
 // ============================================================ data
 
-async function loadPlace(place, { silent = false } = {}) {
+/**
+ * Hämtar och visar prognosen för en ort.
+ *
+ * keep   Behåll prognosen som redan visas medan den nya hämtas, och även om
+ *        hämtningen misslyckas. Används för uppdateringar av samma ort.
+ * quiet  Säg inget till användaren om hämtningen misslyckas (automatiska försök).
+ */
+async function loadPlace(place, { keep = false, quiet = false } = {}) {
   state.forecastAbort?.abort();
   const controller = new AbortController();
   state.forecastAbort = controller;
@@ -153,23 +205,44 @@ async function loadPlace(place, { silent = false } = {}) {
   document.title = `${place.name} · Vilket väder`;
   renderFavorites();
 
-  if (!silent) setLoading();
+  const keeping = keep && state.data !== null;
+  if (keeping) {
+    els.updated.textContent = 'Uppdaterar…';
+  } else if (!quiet) {
+    state.data = null; // det som visades gällde en annan ort eller enhet
+    setLoading();
+  }
 
+  let data;
   try {
-    const data = await fetchForecast(place, { unit: state.settings.unit, signal: controller.signal });
-    if (controller.signal.aborted) return;
-    state.data = data;
-    state.fetchedAt = Date.now();
-    render();
+    data = await fetchForecast(place, { unit: state.settings.unit, signal: controller.signal });
   } catch (err) {
     if (controller.signal.aborted) return;
     console.error(err);
-    if (state.data && silent) {
-      showToast('Kunde inte uppdatera – visar senaste hämtade prognos.');
-      return;
+    if (keeping) {
+      renderStatus();
+      if (!quiet) showToast('Kunde inte uppdatera – visar senast hämtade prognos.');
+    } else if (!quiet) {
+      setError(err instanceof ApiError ? err.message : 'Något gick fel när prognosen skulle hämtas.');
     }
-    setError(err.message || 'Kunde inte hämta vädret');
+    return;
   }
+  if (controller.signal.aborted) return;
+
+  state.data = data;
+  state.fetchedAt = Date.now();
+  try {
+    render();
+  } catch (err) {
+    console.error(err);
+    state.data = null;
+    setError('Prognosen gick inte att visa. Försök igen om en stund.');
+  }
+}
+
+/** Hämtar om prognosen för orten som visas, utan att tömma vyn under tiden. */
+function refresh({ quiet = false } = {}) {
+  if (state.place) loadPlace(state.place, { keep: true, quiet });
 }
 
 async function locate({ quiet = false } = {}) {
@@ -190,13 +263,12 @@ async function locate({ quiet = false } = {}) {
 // ============================================================ sök
 
 function onSearchInput() {
-  const q = els.searchInput.value;
-  els.searchClear.hidden = q.length === 0;
-  clearTimeout(state.searchTimer);
-  state.searchAbort?.abort();
+  const q = els.searchInput.value.trim();
+  els.searchClear.hidden = els.searchInput.value.length === 0;
+  cancelPendingSearch();
 
-  if (q.trim().length < 2) {
-    state.searchResults = [];
+  if (q.length < 2) {
+    setSearchResults([], '');
     closeResults();
     return;
   }
@@ -207,13 +279,24 @@ function onSearchInput() {
     try {
       const results = await searchPlaces(q, { signal: controller.signal });
       if (controller.signal.aborted) return;
-      state.searchResults = results;
-      state.activeIndex = -1;
+      setSearchResults(results, q);
       renderResults(results, q);
     } catch (err) {
       if (!controller.signal.aborted) console.warn('Ortsök misslyckades', err);
     }
   }, SEARCH_DEBOUNCE_MS);
+}
+
+/** Stoppar både den väntande och den pågående sökningen, så att inget sent svar öppnar listan igen. */
+function cancelPendingSearch() {
+  clearTimeout(state.searchTimer);
+  state.searchAbort?.abort();
+}
+
+function setSearchResults(results, query) {
+  state.searchResults = results;
+  state.searchQuery = query;
+  state.activeIndex = -1;
 }
 
 function onSearchKeydown(e) {
@@ -227,31 +310,31 @@ function onSearchKeydown(e) {
     setActive((state.activeIndex - 1 + n) % n);
   } else if (e.key === 'Escape') {
     if (els.searchResults.hidden) clearSearch(); else closeResults();
+  } else if (e.key === 'Tab') {
+    closeResults();
   }
 }
 
 async function onSearchSubmit(e) {
   e.preventDefault();
-  clearTimeout(state.searchTimer);
-
-  if (state.activeIndex >= 0 && state.searchResults[state.activeIndex]) {
-    choosePlace(state.searchResults[state.activeIndex]);
-    return;
-  }
-  if (state.searchResults.length) {
-    choosePlace(state.searchResults[0]);
-    return;
-  }
-
+  cancelPendingSearch();
   const q = els.searchInput.value.trim();
+
+  // Träfflistan får bara användas om den hör till det som står i fältet just nu –
+  // annars hinner man trycka Enter och få en ort från en äldre sökning.
+  if (state.searchQuery === q && state.searchResults.length) {
+    choosePlace(state.searchResults[Math.max(0, state.activeIndex)]);
+    return;
+  }
   if (q.length < 2) return;
+
   els.searchForm.classList.add('is-busy');
   try {
     const results = await searchPlaces(q);
     if (results.length) choosePlace(results[0]);
     else showToast(`Hittade ingen ort som heter "${q}".`);
   } catch (err) {
-    showToast(err.message || 'Sökningen misslyckades');
+    showToast(err instanceof ApiError ? err.message : 'Sökningen misslyckades.');
   } finally {
     els.searchForm.classList.remove('is-busy');
   }
@@ -259,25 +342,27 @@ async function onSearchSubmit(e) {
 
 function choosePlace(place) {
   if (!place) return;
-  closeResults();
-  els.searchInput.value = '';
-  els.searchClear.hidden = true;
-  state.searchResults = [];
+  resetSearch();
   els.searchInput.blur();
   loadPlace(place);
 }
 
 function clearSearch() {
+  resetSearch();
+  els.searchInput.focus();
+}
+
+function resetSearch() {
+  cancelPendingSearch();
   els.searchInput.value = '';
   els.searchClear.hidden = true;
-  state.searchResults = [];
+  setSearchResults([], '');
   closeResults();
-  els.searchInput.focus();
 }
 
 function renderResults(results, query) {
   if (!results.length) {
-    els.searchResults.innerHTML = `<li class="search__empty" aria-disabled="true">Ingen ort hittades för "${esc(query)}"</li>`;
+    els.searchResults.innerHTML = `<li class="search__empty" role="option" aria-disabled="true" aria-selected="false">Ingen ort hittades för "${esc(query)}"</li>`;
     openResults();
     return;
   }
@@ -292,7 +377,7 @@ function renderResults(results, query) {
 
 function setActive(index) {
   state.activeIndex = index;
-  const items = els.searchResults.querySelectorAll('[role="option"]');
+  const items = els.searchResults.querySelectorAll('.search__item');
   items.forEach((li, i) => {
     const on = i === index;
     li.classList.toggle('is-active', on);
@@ -318,26 +403,19 @@ function closeResults() {
 
 function toggleFavorite() {
   if (!state.place) return;
-  const now = store.toggleFavorite(state.place);
+  const added = store.toggleFavorite(state.place);
   renderFavorites();
-  showToast(now ? `${state.place.name} sparad som favorit` : `${state.place.name} borttagen från favoriter`);
+  showToast(added ? `${state.place.name} sparad som favorit` : `${state.place.name} borttagen från favoriter`);
 }
 
 function onFavoritesClick(e) {
   const remove = e.target.closest('[data-remove]');
   if (remove) {
-    const name = remove.dataset.name;
-    store.removeFavorite(remove.dataset.remove);
-    renderFavorites();
-    showToast(`${name} borttagen`);
+    removeFavorites((f) => f.id === remove.dataset.remove, `${remove.dataset.name} borttagen`);
     return;
   }
-  const clearAll = e.target.closest('[data-clear]');
-  if (clearAll) {
-    if (confirm('Ta bort alla favoriter?')) {
-      store.clearFavorites();
-      renderFavorites();
-    }
+  if (e.target.closest('[data-clear]')) {
+    removeFavorites(() => true, 'Alla favoriter borttagna');
     return;
   }
   const chip = e.target.closest('[data-id]');
@@ -345,6 +423,20 @@ function onFavoritesClick(e) {
     const fav = store.getFavorites().find((f) => f.id === chip.dataset.id);
     if (fav) loadPlace(fav);
   }
+}
+
+/** Tar bort direkt och erbjuder "Ångra", i stället för att avbryta med en fråga först. */
+function removeFavorites(shouldRemove, message) {
+  const before = store.getFavorites();
+  store.setFavorites(before.filter((f) => !shouldRemove(f)));
+  renderFavorites();
+  showToast(message, {
+    duration: 6000,
+    action: {
+      label: 'Ångra',
+      onClick: () => { store.setFavorites(before); renderFavorites(); },
+    },
+  });
 }
 
 function renderFavorites() {
@@ -391,25 +483,37 @@ function applyTheme(theme) {
 }
 
 function toggleTheme() {
-  const resolvedDark = state.settings.theme === 'dark'
-    || (state.settings.theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  state.settings = store.updateSettings({ theme: resolvedDark ? 'light' : 'dark' });
+  const { theme } = state.settings;
+  const isDark = theme === 'dark' || (theme === 'auto' && systemDark.matches);
+  const next = isDark ? 'light' : 'dark';
+  // Blir valet samma som systemets går vi tillbaka till "auto", så att appen följer systemet igen.
+  const followsSystem = (next === 'dark') === systemDark.matches;
+  state.settings = store.updateSettings({ theme: followsSystem ? 'auto' : next });
   applyTheme(state.settings.theme);
 }
 
+/**
+ * Sätter webbläsarens temafärg (adressfält/statusrad) till sidans bakgrund högst upp.
+ * Bakgrunden tonas om via registrerade CSS-variabler, och mitt i toningen ger
+ * getComputedStyle ett mellanvärde – därför läses färgen av en gång till när den är klar.
+ */
 function syncThemeColor() {
-  // Läs den faktiska bakgrundsfärgen (styrs av data-weather + tema i CSS).
-  requestAnimationFrame(() => {
-    const design = els.html.dataset.design;
-    if (design === 'grok') {
-      const sky = document.querySelector('.grok-sky');
-      const c = sky ? getComputedStyle(sky).backgroundColor : '';
-      if (c && c !== 'transparent' && c !== 'rgba(0, 0, 0, 0)') els.themeColor.setAttribute('content', c);
-      return;
-    }
-    const c = getComputedStyle(els.body).getPropertyValue(design === 'astra' ? '--astra-page' : '--bg-1').trim();
-    if (c) els.themeColor.setAttribute('content', c);
-  });
+  clearTimeout(state.themeColorTimer);
+  requestAnimationFrame(readThemeColor);
+  state.themeColorTimer = setTimeout(readThemeColor, BACKGROUND_FADE_MS + 150);
+}
+
+/** Färgen styrs av data-weather + tema i CSS, så den läses av därifrån. */
+function readThemeColor() {
+  const design = els.html.dataset.design;
+  if (design === 'grok') {
+    const sky = document.querySelector('.grok-sky');
+    const c = sky ? getComputedStyle(sky).backgroundColor : '';
+    if (c && c !== 'transparent' && c !== 'rgba(0, 0, 0, 0)') els.themeColor.setAttribute('content', c);
+    return;
+  }
+  const c = getComputedStyle(els.body).getPropertyValue(design === 'astra' ? '--astra-page' : '--bg-1').trim();
+  if (c) els.themeColor.setAttribute('content', c);
 }
 
 function toggleUnit() {
@@ -440,6 +544,8 @@ function setLoading() {
   els.stats.innerHTML = Array.from({ length: 6 }, () => '<div class="stat"><span class="skel skel--text"></span><span class="skel skel--value"></span></div>').join('');
   els.hourly.innerHTML = Array.from({ length: 8 }, () => '<div class="hour"><span class="skel skel--text"></span><span class="skel skel--icon-sm"></span><span class="skel skel--text"></span></div>').join('');
   els.daily.innerHTML = Array.from({ length: 7 }, () => '<li class="day"><span class="skel skel--text"></span><span class="skel skel--icon-sm"></span><span class="skel skel--bar"></span></li>').join('');
+  els.hourly.scrollLeft = 0;
+  syncHourlyNavigation();
   els.updated.textContent = 'Hämtar…';
   clearGrok();
 }
@@ -448,18 +554,25 @@ function setError(message) {
   els.body.dataset.state = 'error';
   els.hero.setAttribute('aria-busy', 'false');
   els.heroPlace.textContent = state.place?.name ?? 'Vilket väder';
-  els.heroSub.textContent = 'Kunde inte hämta prognosen';
+  els.heroSub.textContent = message;
   els.heroIcon.innerHTML = weatherIcon('cloudy', { size: 96 });
   els.heroTemp.textContent = '';
   els.heroUnit.textContent = '';
-  els.heroDesc.textContent = message;
-  els.heroRange.textContent = '';
+  els.heroDesc.textContent = 'Kunde inte hämta prognosen';
   els.stats.innerHTML = '';
   els.hourly.innerHTML = '';
+  syncHourlyNavigation();
   els.daily.innerHTML = '';
-  els.updated.textContent = navigator.onLine ? '' : 'Du verkar vara offline';
+  els.updated.textContent = '';
   clearGrok();
-  showToast(message, { action: { label: 'Försök igen', onClick: () => state.place && loadPlace(state.place) }, duration: 8000 });
+
+  // Knappen ligger kvar i vyn så länge felet gör det – en toast hinner försvinna.
+  const retry = document.createElement('button');
+  retry.type = 'button';
+  retry.className = 'link-btn';
+  retry.textContent = 'Försök igen';
+  retry.addEventListener('click', () => refresh());
+  els.heroRange.replaceChildren(retry);
 }
 
 function render() {
@@ -482,7 +595,7 @@ function render() {
   els.heroPlace.textContent = p.name;
   els.heroSub.textContent = [where, fmt.formatLongDate(cur.time)].filter(Boolean).join(' · ');
   els.heroIcon.innerHTML = weatherIcon(iconKey(cur.weather_code, isDay), { size: 128, label: wx.text });
-  els.heroTemp.textContent = Math.round(cur.temperature_2m);
+  els.heroTemp.textContent = fmt.formatNumber(cur.temperature_2m);
   els.heroUnit.textContent = fmt.unitSymbol(unit);
   els.heroDesc.textContent = wx.text;
   els.heroRange.innerHTML = today
@@ -499,45 +612,86 @@ function render() {
     stat('Sol upp och ner', today ? `${fmt.formatTime(today.sunrise)} – ${fmt.formatTime(today.sunset)}` : '–', today ? daylightNote(today.sunrise, today.sunset) : '', sunIcon(), 'stat__value--compact'),
   ].join('');
 
-  // --- timmar
-  renderHourly(d, todayKey);
-
-  // --- dagar
+  const hours = upcomingHours(d);
+  renderHourly(hours, todayKey);
   renderDaily(d, todayKey);
 
   // --- sidfot
   const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   els.hourlyHint.textContent = d.timezone && d.timezone !== browserTz ? `Lokal tid (${d.timezone_abbreviation})` : '';
-  els.updated.textContent = `Uppdaterad ${new Intl.DateTimeFormat('sv-SE', { hour: '2-digit', minute: '2-digit' }).format(new Date(state.fetchedAt))}`;
-  renderGrok();
+  renderStatus();
+  renderGrok(hours);
 }
 
-function renderHourly(d, todayKey) {
+/** Sidfotens statusrad: när prognosen hämtades, eller att den är sparad sedan tidigare. */
+function renderStatus() {
+  const observed = observedAt(state.data);
+  const isSaved = Number.isFinite(observed) && state.fetchedAt - observed > SAVED_FORECAST_AFTER_MS;
+  els.updated.textContent = isSaved
+    ? `Sparad prognos från ${fmt.formatTimestamp(observed)}`
+    : `Uppdaterad ${fmt.formatTimestamp(state.fetchedAt)}`;
+}
+
+/**
+ * Tidpunkten (ms) som prognosens "just nu" gäller. Open-Meteo anger den i ortens
+ * lokala tid utan zon, tillsammans med ortens avstånd till UTC.
+ */
+function observedAt(d) {
+  const localAsUtc = Date.parse(`${d.current.time}:00Z`);
+  return localAsUtc - (d.utc_offset_seconds ?? 0) * 1000;
+}
+
+/**
+ * De kommande timmarna med början i den pågående. Den första posten får
+ * mätvärdena för just nu, så att den alltid stämmer med det stora kortet.
+ */
+function upcomingHours(d) {
   const h = d.hourly;
-  const start = Math.max(0, h.time.findIndex((t) => t >= d.current.time.slice(0, 13)));
-  const items = [];
-  let lastDay = todayKey;
+  const cur = d.current;
+  const currentHour = cur.time.slice(0, 13);
+  const start = Math.max(0, h.time.findIndex((t) => t >= currentHour));
+  const hours = [];
 
   for (let i = start; i < Math.min(h.time.length, start + HOURS_TO_SHOW); i++) {
-    const t = h.time[i];
-    const day = fmt.dateKey(t);
-    if (day !== lastDay) {
-      items.push(`<div class="hour hour--sep" aria-hidden="true"><span>${fmt.formatDayLabel(t, todayKey)}</span></div>`);
-      lastDay = day;
-    }
-    const prob = h.precipitation_probability?.[i];
-    const code = h.weather_code[i];
-    const label = describe(code).text;
-    items.push(`
-      <div class="hour" role="group" aria-label="${esc(`${fmt.formatTime(t)}: ${label}, ${fmt.formatTemp(h.temperature_2m[i])}`)}">
-        <span class="hour__time">${i === start ? 'Nu' : fmt.formatTime(t)}</span>
-        <span class="hour__icon">${weatherIcon(iconKey(code, h.is_day?.[i] === 1), { size: 36 })}</span>
-        <span class="hour__temp">${fmt.formatTemp(h.temperature_2m[i])}</span>
-        <span class="hour__prob ${prob >= 10 ? '' : 'is-empty'}">${prob >= 10 ? `${Math.round(prob)} %` : ''}</span>
-      </div>`);
+    hours.push({
+      time: h.time[i],
+      temp: h.temperature_2m[i],
+      code: h.weather_code[i],
+      isDay: h.is_day?.[i] === 1,
+      precipProb: h.precipitation_probability?.[i],
+      isNow: false,
+    });
   }
-  els.hourly.innerHTML = items.join('');
-  els.hourly.scrollLeft = 0;
+
+  if (hours[0]?.time.startsWith(currentHour)) {
+    Object.assign(hours[0], { temp: cur.temperature_2m, code: cur.weather_code, isDay: cur.is_day === 1, isNow: true });
+  }
+  return hours;
+}
+
+function renderHourly(hours, todayKey) {
+  let lastDay = todayKey;
+
+  els.hourly.innerHTML = hours.map((hour) => {
+    const day = fmt.dateKey(hour.time);
+    const separator = day === lastDay ? ''
+      : `<div class="hour hour--sep" aria-hidden="true"><span>${esc(fmt.formatDayLabel(hour.time, todayKey))}</span></div>`;
+    lastDay = day;
+
+    const time = hour.isNow ? 'Nu' : fmt.formatTime(hour.time);
+    const temp = fmt.formatTemp(hour.temp);
+    const rain = precipLabel(hour.precipProb);
+    const summary = [`${time}: ${describe(hour.code).text}`, temp, rain && `${rain} risk för nederbörd`].filter(Boolean).join(', ');
+
+    return `${separator}
+      <div class="hour" role="group" aria-label="${esc(summary)}">
+        <span class="hour__time">${time}</span>
+        <span class="hour__icon">${weatherIcon(iconKey(hour.code, hour.isDay), { size: 36 })}</span>
+        <span class="hour__temp">${temp}</span>
+        <span class="hour__prob ${rain ? '' : 'is-empty'}">${rain}</span>
+      </div>`;
+  }).join('');
+  requestAnimationFrame(syncHourlyNavigation);
 }
 
 function renderDaily(d, todayKey) {
@@ -546,22 +700,39 @@ function renderDaily(d, todayKey) {
   const weekMax = Math.max(...days.map((x) => x.max));
   const span = Math.max(1, weekMax - weekMin);
 
+  // Raden läses upp som en mening; de visuella kolumnerna döljs för skärmläsare.
   els.daily.innerHTML = days.map((day) => {
     const left = ((day.min - weekMin) / span) * 100;
     const width = ((day.max - day.min) / span) * 100;
     const wx = describe(day.code);
+    const min = fmt.formatTemp(day.min);
+    const max = fmt.formatTemp(day.max);
+    const rain = precipLabel(day.precipProb);
+    const summary = [
+      `${fmt.formatDayLabel(day.time, todayKey, { long: true })}: ${wx.text}`,
+      `lägst ${min}`,
+      `högst ${max}`,
+      rain && `${rain} risk för nederbörd`,
+    ].filter(Boolean).join(', ');
+
     return `
-      <li class="day" role="group" aria-label="${esc(`${fmt.formatDayLabel(day.time, todayKey, { long: true })}: ${wx.text}, lägst ${fmt.formatTemp(day.min)}, högst ${fmt.formatTemp(day.max)}`)}">
-        <span class="day__name">${fmt.formatDayLabel(day.time, todayKey)}<small>${fmt.formatDayMonth(day.time)}</small></span>
-        <span class="day__icon" title="${esc(wx.text)}">${weatherIcon(iconKey(day.code, true), { size: 36 })}</span>
-        <span class="day__prob ${day.precipProb >= 10 ? '' : 'is-empty'}">${day.precipProb >= 10 ? `${Math.round(day.precipProb)} %` : ''}</span>
-        <span class="day__min">${fmt.formatTemp(day.min)}</span>
+      <li class="day">
+        <span class="visually-hidden">${esc(summary)}</span>
+        <span class="day__name" aria-hidden="true">${esc(fmt.formatDayLabel(day.time, todayKey))}<small>${esc(fmt.formatDayMonth(day.time))}</small></span>
+        <span class="day__icon" aria-hidden="true" title="${esc(wx.text)}">${weatherIcon(iconKey(day.code, true), { size: 36 })}</span>
+        <span class="day__prob ${rain ? '' : 'is-empty'}" aria-hidden="true">${rain}</span>
+        <span class="day__min" aria-hidden="true">${min}</span>
         <span class="day__bar" aria-hidden="true">
           <span class="day__fill" style="left:${left.toFixed(1)}%;width:${Math.max(width, 6).toFixed(1)}%;background:${tempGradient(day.min, day.max, state.settings.unit)}"></span>
         </span>
-        <span class="day__max">${fmt.formatTemp(day.max)}</span>
+        <span class="day__max" aria-hidden="true">${max}</span>
       </li>`;
   }).join('');
+}
+
+/** "62 %" om nederbördsrisken är värd att visa, annars ''. */
+function precipLabel(prob) {
+  return prob >= 10 ? `${Math.round(prob)} %` : '';
 }
 
 function dailyAt(d, i) {
@@ -613,11 +784,8 @@ function humidityNote(rh) {
 }
 
 function daylightNote(sunrise, sunset) {
-  const ms = new Date(sunset) - new Date(sunrise);
-  if (!Number.isFinite(ms) || ms <= 0) return '';
-  const h = Math.floor(ms / 3600000);
-  const m = Math.round((ms % 3600000) / 60000);
-  return `${h} h ${m} min dagsljus`;
+  const duration = fmt.formatDuration(sunrise, sunset);
+  return duration ? `${duration} dagsljus` : '';
 }
 
 /**
@@ -699,7 +867,7 @@ function clearGrok() {
   if (spark) spark.replaceChildren();
 }
 
-function renderGrok() {
+function renderGrok(hours) {
   const d = state.data;
   const cur = d?.current;
   const line = $('grok-line');
@@ -725,17 +893,15 @@ function renderGrok() {
   }
   aside.textContent = bits.length ? `${bits.join('. ')}.` : '';
 
-  renderGrokSpark(d);
+  renderGrokSpark(hours);
   renderGrokDial(d);
 }
 
-function renderGrokSpark(d) {
+/** Temperaturkurva över samma timmar som timprognosen visar. */
+function renderGrokSpark(hours) {
   const el = $('grok-spark');
   if (!el) return;
-  const h = d.hourly;
-  const start = Math.max(0, h.time.findIndex((t) => t >= d.current.time.slice(0, 13)));
-  const temps = [];
-  for (let i = start; i < Math.min(h.time.length, start + HOURS_TO_SHOW); i++) temps.push(h.temperature_2m[i]);
+  const temps = hours.map((hour) => hour.temp);
   const known = temps.filter((t) => t != null && !Number.isNaN(t));
   if (known.length < 2) { el.replaceChildren(); return; }
 
@@ -762,8 +928,8 @@ function renderGrokSpark(d) {
       <path class="grok-spark__line" d="${line}"/>
     </svg>
     <i class="grok-spark__now" style="left:${(pts[0][0] / w * 100).toFixed(2)}%;top:${(pts[0][1] / ht * 100).toFixed(2)}%"></i>
-    <span class="grok-spark__hi">${Math.round(max)}°</span>
-    <span class="grok-spark__lo">${Math.round(min)}°</span>`;
+    <span class="grok-spark__hi">${fmt.formatTemp(max)}</span>
+    <span class="grok-spark__lo">${fmt.formatTemp(min)}</span>`;
 }
 
 function renderGrokDial(d) {
@@ -819,30 +985,36 @@ function arcPoint(t) {
 // ============================================================ toast
 
 function showToast(text, { action = null, duration = 4000 } = {}) {
+  // Även den fördröjda döljningen måste avbrytas, annars släcker en gammal toast den nya.
   clearTimeout(state.toastTimer);
+  clearTimeout(state.toastHideTimer);
+
   els.toastText.textContent = text;
   els.toastAction.hidden = !action;
-  if (action) {
-    els.toastAction.textContent = action.label;
-    els.toastAction.onclick = () => { hideToast(); action.onClick(); };
-  }
+  els.toastAction.textContent = action?.label ?? '';
+  els.toastAction.onclick = action ? () => { hideToast(); action.onClick(); } : null;
+
   els.toast.hidden = false;
   requestAnimationFrame(() => els.toast.classList.add('is-visible'));
   state.toastTimer = setTimeout(hideToast, duration);
 }
 
 function hideToast() {
+  clearTimeout(state.toastTimer);
   els.toast.classList.remove('is-visible');
-  setTimeout(() => { els.toast.hidden = true; }, 250);
+  state.toastHideTimer = setTimeout(() => { els.toast.hidden = true; }, TOAST_FADE_MS);
 }
 
 // ============================================================ service worker
 
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
-  window.addEventListener('load', () => {
+  const register = () => {
     navigator.serviceWorker.register('sw.js').catch((err) => console.warn('Service worker kunde inte registreras', err));
-  });
+  };
+  // Vänta tills sidan laddat klart så att registreringen inte konkurrerar med första visningen.
+  if (document.readyState === 'complete') register();
+  else window.addEventListener('load', register, { once: true });
 }
 
 init();

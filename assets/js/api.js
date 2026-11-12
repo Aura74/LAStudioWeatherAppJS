@@ -9,32 +9,68 @@ const REVERSE_URL = 'https://nominatim.openstreetmap.org/reverse';
 const REVERSE_FALLBACK_URL = 'https://api.bigdatacloud.net/data/reverse-geocode-client';
 
 const REQUEST_TIMEOUT_MS = 12000;
+// Väntetid före varje nytt försök när ett fel ser tillfälligt ut (serverfel, tappad anslutning).
+const RETRY_DELAYS_MS = [600, 1800];
 
-class ApiError extends Error {
-  constructor(message, { cause, status } = {}) {
+/** Fel med ett meddelande som går att visa för användaren som det är. */
+export class ApiError extends Error {
+  /** @param {{cause?: unknown, status?: number, transient?: boolean}} [details] transient = värt att försöka igen direkt */
+  constructor(message, { cause, status, transient = false } = {}) {
     super(message, { cause });
     this.name = 'ApiError';
     this.status = status;
+    this.transient = transient;
   }
 }
 
-async function getJson(url, { signal } = {}) {
+function httpError(status) {
+  if (status === 429) return new ApiError('Tjänsten har fått för många anrop just nu. Försök igen om en stund.', { status });
+  if (status >= 500) return new ApiError('Tjänsten svarar inte just nu. Försök igen om en stund.', { status, transient: true });
+  return new ApiError(`Tjänsten avvisade förfrågan (felkod ${status}).`, { status });
+}
+
+const sleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
+
+/**
+ * Hämtar JSON. Kastar alltid ApiError, oavsett vad som gick fel.
+ * Med retry görs upp till två nya försök om felet ser tillfälligt ut.
+ */
+async function getJson(url, { signal, retry = false } = {}) {
+  const delays = retry ? RETRY_DELAYS_MS : [];
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await requestJson(url, signal);
+    } catch (err) {
+      if (!err.transient || attempt >= delays.length) throw err;
+      await sleep(delays[attempt]);
+      if (signal?.aborted) throw new ApiError('Avbruten', { cause: err });
+    }
+  }
+}
+
+/** Ett enda anrop med tidsgräns. */
+async function requestJson(url, signal) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  if (signal) signal.addEventListener('abort', () => controller.abort(), { once: true });
+  const abort = () => controller.abort();
+  const timer = setTimeout(abort, REQUEST_TIMEOUT_MS);
+  if (signal?.aborted) abort();
+  else signal?.addEventListener('abort', abort, { once: true });
 
   try {
     const res = await fetch(url, { signal: controller.signal, headers: { Accept: 'application/json' } });
-    if (!res.ok) throw new ApiError(`Servern svarade ${res.status}`, { status: res.status });
+    if (!res.ok) throw httpError(res.status);
     return await res.json();
   } catch (err) {
-    if (err.name === 'AbortError') {
-      throw new ApiError(signal?.aborted ? 'Avbruten' : 'Tidsgränsen överskreds', { cause: err });
-    }
     if (err instanceof ApiError) throw err;
-    throw new ApiError('Kunde inte nå tjänsten', { cause: err });
+    if (err.name === 'AbortError') {
+      throw new ApiError(signal?.aborted ? 'Avbruten' : 'Det tog för lång tid att få svar. Kontrollera anslutningen.', { cause: err });
+    }
+    if (err instanceof SyntaxError) throw new ApiError('Oväntat svar från tjänsten.', { cause: err });
+    if (!navigator.onLine) throw new ApiError('Du verkar vara offline.', { cause: err });
+    throw new ApiError('Kunde inte nå tjänsten. Kontrollera anslutningen.', { cause: err, transient: true });
   } finally {
     clearTimeout(timer);
+    signal?.removeEventListener('abort', abort);
   }
 }
 
@@ -77,6 +113,11 @@ function normalizePlace(r) {
  * @param {{unit?: 'celsius'|'fahrenheit', signal?: AbortSignal}} opts
  */
 export async function fetchForecast({ lat, lon }, { unit = 'celsius', signal } = {}) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    throw new ApiError('Orten saknar giltiga koordinater.');
+  }
+
+  // Bara de fält som appen faktiskt visar.
   const params = new URLSearchParams({
     latitude: lat.toFixed(4),
     longitude: lon.toFixed(4),
@@ -86,23 +127,23 @@ export async function fetchForecast({ lat, lon }, { unit = 'celsius', signal } =
     wind_speed_unit: 'ms',
     current: [
       'temperature_2m', 'apparent_temperature', 'relative_humidity_2m',
-      'weather_code', 'wind_speed_10m', 'wind_direction_10m', 'wind_gusts_10m',
-      'is_day', 'precipitation', 'surface_pressure',
+      'weather_code', 'wind_speed_10m', 'wind_direction_10m', 'wind_gusts_10m', 'is_day',
     ].join(','),
-    hourly: [
-      'temperature_2m', 'weather_code', 'precipitation_probability',
-      'precipitation', 'is_day', 'wind_speed_10m',
-    ].join(','),
+    hourly: ['temperature_2m', 'weather_code', 'precipitation_probability', 'is_day'].join(','),
     daily: [
       'weather_code', 'temperature_2m_max', 'temperature_2m_min',
-      'sunrise', 'sunset', 'precipitation_sum', 'precipitation_probability_max',
-      'uv_index_max', 'wind_speed_10m_max',
+      'sunrise', 'sunset', 'precipitation_sum', 'precipitation_probability_max', 'uv_index_max',
     ].join(','),
   });
 
-  const data = await getJson(`${FORECAST_URL}?${params}`, { signal });
-  if (data.error) throw new ApiError(data.reason ?? 'Fel från vädertjänsten');
+  const data = await getJson(`${FORECAST_URL}?${params}`, { signal, retry: true });
+  if (!isForecast(data)) throw new ApiError('Oväntat svar från vädertjänsten.');
   return data;
+}
+
+/** Minsta form som resten av appen förutsätter. */
+function isForecast(d) {
+  return Boolean(d?.current?.time && Array.isArray(d.hourly?.time) && Array.isArray(d.daily?.time));
 }
 
 /**
@@ -156,5 +197,3 @@ export function getCurrentPosition() {
     );
   });
 }
-
-export { ApiError };

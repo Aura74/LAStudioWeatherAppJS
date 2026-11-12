@@ -4,7 +4,7 @@
 const CODES = {
   0:  { text: 'Klart',                     icon: 'clear',      theme: 'clear' },
   1:  { text: 'Mestadels klart',           icon: 'clear',      theme: 'clear' },
-  2:  { text: 'Halvklart',                 icon: 'partly',     theme: 'partly' },
+  2:  { text: 'Halvklart',                 icon: 'partly-cloudy', theme: 'partly' },
   3:  { text: 'Mulet',                     icon: 'cloudy',     theme: 'cloudy' },
   45: { text: 'Dimma',                     icon: 'fog',        theme: 'fog' },
   48: { text: 'Dimma med rimfrost',        icon: 'fog',        theme: 'fog' },
@@ -39,16 +39,15 @@ export function describe(code) {
   return CODES[code] ?? FALLBACK;
 }
 
+/** Ikoner som finns i en dag- och en nattvariant (sol eller måne). */
+const DAY_NIGHT_ICONS = ['clear', 'partly-cloudy'];
+
 /**
- * Ikonnyckel med dag/natt-variant där det är relevant
- * (klart och halvklart ser olika ut på natten).
+ * Ikonnyckel som matchar en ritning i icons.js, t.ex. "partly-cloudy-night" eller "rain".
  */
 export function iconKey(code, isDay = true) {
   const { icon } = describe(code);
-  if (icon === 'clear' || icon === 'partly') {
-    return `${icon}-${isDay ? 'day' : 'night'}`;
-  }
-  return icon;
+  return DAY_NIGHT_ICONS.includes(icon) ? `${icon}-${isDay ? 'day' : 'night'}` : icon;
 }
 
 /** Temanyckel som styr bakgrundsgradienten, t.ex. "rain-night". */

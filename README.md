@@ -14,12 +14,13 @@ Visar vädret just nu, timme för timme och sju dagar framåt för valfri ort i 
 - **Just nu** – temperatur, väderbeskrivning, känns som, vind (riktning, styrka i ord, byar), luftfuktighet, nederbörd, UV-index, soluppgång/solnedgång.
 - **Kommande 24 timmar** – scrollbar rad med ikon, temperatur och regnchans.
 - **Sju dagar** – lägsta/högsta med temperaturstapel färgad efter kallt → varmt.
-- **Favoriter** – spara orter med stjärnan, byt snabbt via chips. Sparas i webbläsaren.
+- **Favoriter** – spara orter med stjärnan, byt snabbt via chips. Sparas i webbläsaren. Borttagning går att ångra.
 - **Mörkt/ljust tema** – följer systemet, kan växlas manuellt. Bakgrunden skiftar färg efter vädret och tid på dygnet.
 - **°C / °F**.
-- **Tre designer att jämföra** – välj **Claude Code · Original**, **Astra · Ny design** eller **Grok · Observatorium** ovanför prognosen. Originalet är förvalt; ditt val sparas. Växlingen behåller ort, prognos, favoriter, temperaturenhet och ljust/mörkt tema. Astra har en separat stilmall med skogsgrönt, varmvit bakgrund, landskapsillustration och en annan layout. Grok är ett mörkt observatorium: himlen ritas om efter vädret, temperaturen står i en antikva, och prognosen får en temperaturkurva och en solbåge. `?design=grok` (eller `astra` / `claude`) visar den designen utan att skriva över ett sparat val.
-- **Installerbar app (PWA)** med egen ikon, fungerar offline med senast hämtade prognos.
+- **Tre designer att jämföra** – välj **Claude Code · Original**, **Astra · Natur** eller **Grok · Observatorium** ovanför prognosen. Originalet är förvalt; ditt val sparas. Växlingen behåller ort, prognos, favoriter, temperaturenhet och ljust/mörkt tema. Astra har en separat stilmall med skogsgrönt, varmvit bakgrund, landskapsillustration och en annan layout. Grok är ett mörkt observatorium: himlen ritas om efter vädret, temperaturen står i en antikva, och prognosen får en temperaturkurva och en solbåge. `?design=grok` (eller `astra` / `claude`) visar den designen utan att skriva över ett sparat val.
+- **Installerbar app (PWA)** med egen ikon, fungerar offline med senast hämtade prognos (sidfoten visar då "Sparad prognos från …").
 - Kommer ihåg senast visade ort. Uppdaterar automatiskt var 15:e minut.
+- **Tål strul** – tillfälliga fel hos vädertjänsten försöks om automatiskt, andra fel visas i klartext med en "Försök igen"-knapp, och trasig sparad data kan inte hindra appen från att starta.
 
 ## Kör lokalt
 
@@ -32,6 +33,9 @@ python3 -m http.server 8000
 
 Eller vilken statisk server som helst (`npx serve`, VS Code Live Server, GitHub Pages…).
 
+Öppnas `index.html` ändå direkt som fil blockerar Chrome och Safari appens moduler. Sidan säger då
+själv vad som är fel i stället för att stå och ladda (se `assets/js/boot-guard.js`).
+
 ## Mappstruktur
 
 ```
@@ -42,13 +46,14 @@ assets/
   css/style.css          Designtokens, teman, vädergradienter, layout
   css/astra.css          Isolerad Astra-design och gemensam designväljare
   css/grok.css           Isolerad Grok-design (observatorium)
-  js/design.js           Designbyte och sparat designval
+  js/design.js           Designval och sparat tema – körs före första renderingen
+  js/boot-guard.js       Startvakt: säger ifrån om appen inte kommer igång
   js/app.js              Huvudlogik: tillstånd, händelser, rendering
   js/api.js              Open-Meteo (väder + ortsök) och omvänd geokodning
   js/weather-codes.js    WMO-väderkod → svensk text, ikon, tema
   js/icons.js            Animerade SVG-väderikoner
   js/format.js           Svenska datum, vindriktning, UV-nivå m.m.
-  js/storage.js          Favoriter, senaste ort, inställningar (localStorage)
+  js/storage.js          Favoriter, senaste ort, inställningar (localStorage, validerat vid läsning)
   icons/                 App-ikon (SVG + PNG i alla storlekar)
 scripts/build-icons.py   Genererar PNG-ikonerna från icon.svg
 ```

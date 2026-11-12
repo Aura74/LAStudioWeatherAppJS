@@ -4,6 +4,7 @@
 // rätt klockslag för orten oavsett var användaren befinner sig.
 
 const LOCALE = 'sv-SE';
+const MINUS = '−'; // riktigt minustecken – bindestreck ser fel ut framför siffror
 
 const fmtWeekdayShort = new Intl.DateTimeFormat(LOCALE, { weekday: 'short' });
 const fmtWeekdayLong = new Intl.DateTimeFormat(LOCALE, { weekday: 'long' });
@@ -11,15 +12,27 @@ const fmtDateLong = new Intl.DateTimeFormat(LOCALE, { weekday: 'long', day: 'num
 const fmtDayMonth = new Intl.DateTimeFormat(LOCALE, { day: 'numeric', month: 'short' });
 const fmtTime = new Intl.DateTimeFormat(LOCALE, { hour: '2-digit', minute: '2-digit' });
 
-export function parseLocal(iso) {
+function parseLocal(iso) {
   return new Date(iso);
 }
 
+/** "2026-09-28" ur en ISO-tid. */
 export function dateKey(iso) {
   return iso.slice(0, 10);
 }
 
-export function capitalize(s) {
+function localDateKey(d) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+function addDays(key, days) {
+  const d = new Date(`${key}T12:00`);
+  d.setDate(d.getDate() + days);
+  return localDateKey(d);
+}
+
+function capitalize(s) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
@@ -35,25 +48,39 @@ export function formatTime(iso) {
   return fmtTime.format(parseLocal(iso));
 }
 
+/** Klockslag för en tidpunkt (ms). Datumet tas med om det inte är idag. */
+export function formatTimestamp(ms) {
+  const d = new Date(ms);
+  const time = fmtTime.format(d);
+  return localDateKey(d) === localDateKey(new Date()) ? time : `${fmtDayMonth.format(d).replace('.', '')} ${time}`;
+}
+
 /** "Idag", "Imorgon" eller veckodag. */
 export function formatDayLabel(iso, todayKey, { long = false } = {}) {
   const key = dateKey(iso);
   if (key === todayKey) return 'Idag';
-  const tomorrow = new Date(`${todayKey}T12:00`);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  if (key === tomorrow.toISOString().slice(0, 10) || key === localDateKey(tomorrow)) return 'Imorgon';
+  if (key === addDays(todayKey, 1)) return 'Imorgon';
   const f = long ? fmtWeekdayLong : fmtWeekdayShort;
   return capitalize(f.format(parseLocal(iso)).replace('.', ''));
 }
 
-function localDateKey(d) {
-  const p = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+/** "7 h 39 min" mellan två ISO-tider, eller '' om det inte går att räkna ut. */
+export function formatDuration(fromIso, toIso) {
+  const minutes = Math.round((parseLocal(toIso) - parseLocal(fromIso)) / 60000);
+  if (!Number.isFinite(minutes) || minutes <= 0) return '';
+  return `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
 }
 
-export function formatTemp(value, unit = 'celsius') {
+/** Avrundat heltal med riktigt minustecken. Saknas värdet blir det ett tankstreck. */
+export function formatNumber(value) {
   if (value == null || Number.isNaN(value)) return '–';
-  return `${Math.round(value)}°`;
+  const n = Math.round(value);
+  return n < 0 ? `${MINUS}${-n}` : String(Math.abs(n)); // Math.abs: "-0" ska bli "0"
+}
+
+export function formatTemp(value) {
+  const n = formatNumber(value);
+  return n === '–' ? n : `${n}°`;
 }
 
 export function unitSymbol(unit) {
@@ -81,11 +108,6 @@ export function formatMm(v) {
   if (v == null) return '–';
   if (v === 0) return '0 mm';
   return `${v < 1 ? v.toFixed(1).replace('.', ',') : Math.round(v)} mm`;
-}
-
-export function formatPressure(hpa) {
-  if (hpa == null) return '–';
-  return `${Math.round(hpa)} hPa`;
 }
 
 export function uvLabel(uv) {

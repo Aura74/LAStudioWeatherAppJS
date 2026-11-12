@@ -1,8 +1,16 @@
-// Separat designval: byt presentation utan att ladda om prognosen.
+// Designval och sparat ljust/mörkt tema. Körs synkront i <head>, före första
+// renderingen, så att sidan aldrig blinkar till i fel design eller fel tema.
+// Designbytet i sig sker utan att prognosen laddas om.
 (() => {
   const key = 'vader.design.v1';
+  const settingsKey = 'vader.settings.v2'; // samma nyckel som storage.js
   const choices = ['claude', 'astra', 'grok'];
   const root = document.documentElement;
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(settingsKey) || 'null');
+    if (saved && (saved.theme === 'light' || saved.theme === 'dark')) root.dataset.theme = saved.theme;
+  } catch { /* Utan sparat val följer temat systemet. */ }
 
   const fromQuery = () => {
     try { return new URLSearchParams(location.search).get('design'); }

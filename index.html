@@ -15,7 +15,10 @@
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="stylesheet" href="assets/css/astra.css">
   <link rel="stylesheet" href="assets/css/grok.css">
+  <!-- Synkront, före första renderingen: väljer design och sparat tema utan att sidan blinkar. -->
   <script src="assets/js/design.js"></script>
+  <!-- Säger ifrån om appen inte startar, t.ex. när sidan öppnats som fil i stället för via en webbserver. -->
+  <script defer src="assets/js/boot-guard.js"></script>
 
   <!-- PWA – installerbar app -->
   <link rel="manifest" href="manifest.webmanifest">
@@ -192,17 +195,17 @@
   </header>
 
   <main class="app">
+    <noscript><p class="notice">Vilket väder behöver JavaScript för att hämta och visa prognosen.</p></noscript>
     <div class="design-bar">
-      <span class="design-bar__label">Jämför design</span>
-      <div class="design-switch" role="group" aria-label="Välj design">
+      <span class="design-bar__label">Välj stil</span>
+      <div class="design-switch" role="group" aria-label="Välj stil">
         <button type="button" data-design-choice="claude" aria-pressed="true">Claude Code <span>Original</span></button>
-        <button type="button" data-design-choice="astra" aria-pressed="false"><svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><path d="m10 1 2.4 6.6L19 10l-6.6 2.4L10 19l-2.4-6.6L1 10l6.6-2.4Z" fill="currentColor"/></svg>Astra <span>Ny design</span></button>
+        <button type="button" data-design-choice="astra" aria-pressed="false"><svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><path d="m10 1 2.4 6.6L19 10l-6.6 2.4L10 19l-2.4-6.6L1 10l6.6-2.4Z" fill="currentColor"/></svg>Astra <span>Natur</span></button>
         <button type="button" data-design-choice="grok" aria-pressed="false"><svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><circle cx="10" cy="10" r="6.4" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="2" fill="currentColor"/></svg>Grok <span>Observatorium</span></button>
       </div>
     </div>
     <div class="astra-intro astra-only">
-      <div><p class="astra-eyebrow">DIN DAG, I DET FRIA</p><h2>Himlen sätter tonen.</h2></div>
-      <p>Lite koll. Mer uteliv.<br>Din prognos för veckan som kommer.</p>
+      <h2>Himlen sätter tonen.</h2>
     </div>
     <nav class="favorites" id="favorites" aria-label="Favoritorter" hidden>
       <div class="favorites__list" id="favorites-list"></div>
@@ -270,7 +273,16 @@
           <span class="card__hint" id="hourly-hint"></span>
         </div>
         <div class="grok-spark grok-only" id="grok-spark" aria-hidden="true"></div>
-        <div class="hourly__scroller" id="hourly" tabindex="0"></div>
+        <div class="hourly__scroller" id="hourly" tabindex="0" role="group" aria-labelledby="hourly-title"></div>
+        <div class="hourly__navigation astra-only" id="hourly-navigation" role="group" aria-label="Bläddra i timprognosen" hidden>
+          <span>Fler timmar</span>
+          <button class="hourly__arrow" id="hourly-prev" type="button" aria-label="Visa tidigare timmar" aria-controls="hourly" disabled>
+            <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m12 5-5 5 5 5"/></svg>
+          </button>
+          <button class="hourly__arrow" id="hourly-next" type="button" aria-label="Visa senare timmar" aria-controls="hourly" disabled>
+            <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m8 5 5 5-5 5"/></svg>
+          </button>
+        </div>
       </section>
 
       <section class="card daily" aria-labelledby="daily-title">

@@ -206,7 +206,6 @@
   }
 }
 
-:root[data-design='grok'] [hidden] { display: none !important; }
 :root[data-design='grok'] .grok-only { display: block; }
 :root[data-design='grok'] .bg { display: none; }
 
@@ -608,7 +607,18 @@
   :root[data-design='grok'] .stat:first-child { border-top: 0; }
   :root[data-design='grok'] .stat__label { grid-area: label; }
   :root[data-design='grok'] .stat__value { grid-area: value; margin: 0; font-size: 30px; }
+  /* Klockslagen står i brödtypsnittet och ska inte ärva sifferstorleken ovan. */
+  :root[data-design='grok'] .stat__value--compact { font-size: 18px; }
   :root[data-design='grok'] .stat__note { grid-area: note; }
+}
+
+/* Under skrivbordsbredd hamnar himlens moln bakom rubrik och favoriter.
+   Tona bort dem över vänsterkanten så att texten alltid går att läsa. */
+@media (max-width: 999px) {
+  .grok-sky__art {
+    -webkit-mask-image: linear-gradient(90deg, transparent 40%, #000 82%);
+    mask-image: linear-gradient(90deg, transparent 40%, #000 82%);
+  }
 }
 
 @media (max-width: 719px) {
@@ -619,6 +629,9 @@
     width: 108vw;
     height: 360px;
   }
+  /* På mobil ligger molnen rakt bakom ortnamnet: dämpa dem, men låt sol och måne lysa. */
+  .gx-clouds { opacity: calc(var(--gx-clouds, 0) * 0.5); }
+  .gx-storm { opacity: calc(var(--gx-storm, 0) * 0.5); }
   :root[data-design='grok'] .grok-dial { width: 100%; }
   .grok-dial__meta { gap: 6px; font-size: 10px; letter-spacing: 0.04em; }
   .grok-dial__meta span:nth-child(2) { font-size: 12px; }

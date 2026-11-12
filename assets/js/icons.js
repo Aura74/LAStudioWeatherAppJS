@@ -78,6 +78,7 @@ function fog() {
 const ICONS = {
   'clear-day': () => sun(32, 32, 12),
   'clear-night': () => moon(34, 32, 13),
+  // Nycklarna måste matcha weather-codes.iconKey().
   'partly-cloudy-day': () => sun(24, 24, 9) + cloud({ x: 6, y: 6, s: 0.95 }),
   'partly-cloudy-night': () => moon(26, 22, 9) + cloud({ x: 6, y: 6, s: 0.95 }),
   cloudy: () => cloud({ x: 10, y: -4, s: 0.7, fill: 'url(#wx-cloud-dark)', cls: 'wx-cloud wx-cloud-back' }) + cloud({ x: -2, y: 4 }),
@@ -103,7 +104,11 @@ export function weatherIcon(key, { size = 64, className = '', label = '' } = {})
   return `<svg class="wx wx-${key} ${className}" viewBox="0 0 64 64" width="${size}" height="${size}" ${a11y} focusable="false">${draw()}</svg>`;
 }
 
-/** Delade gradienter – renderas en gång i index.html via <svg id="wx-defs">. */
+/**
+ * Delade gradienter – renderas en gång i index.html via <svg id="wx-defs">.
+ * Moln, snö och dimma hämtar färg från CSS-variabler (--wx-*, se style.css) så att de
+ * syns även mot ljusa kort. Värdet efter kommat är reserv om variabeln saknas.
+ */
 export const ICON_DEFS = `
   <defs>
     <radialGradient id="wx-sun" gradientUnits="userSpaceOnUse" cx="30" cy="28" r="22">
@@ -112,16 +117,16 @@ export const ICON_DEFS = `
       <stop offset="1" stop-color="#ff9f1c"/>
     </radialGradient>
     <linearGradient id="wx-moon" gradientUnits="userSpaceOnUse" x1="20" y1="18" x2="46" y2="46">
-      <stop offset="0" stop-color="#fffbe8"/>
-      <stop offset="1" stop-color="#c9d1e0"/>
+      <stop offset="0" style="stop-color:var(--wx-moon-light, #fffbe8)"/>
+      <stop offset="1" style="stop-color:var(--wx-moon-shade, #c9d1e0)"/>
     </linearGradient>
     <linearGradient id="wx-cloud" gradientUnits="userSpaceOnUse" x1="0" y1="14" x2="0" y2="48">
-      <stop offset="0" stop-color="#ffffff"/>
-      <stop offset="1" stop-color="#cfd8e6"/>
+      <stop offset="0" style="stop-color:var(--wx-cloud-top, #ffffff)"/>
+      <stop offset="1" style="stop-color:var(--wx-cloud-bottom, #cfd8e6)"/>
     </linearGradient>
     <linearGradient id="wx-cloud-dark" gradientUnits="userSpaceOnUse" x1="0" y1="14" x2="0" y2="48">
-      <stop offset="0" stop-color="#d4dce8"/>
-      <stop offset="1" stop-color="#8d9bb0"/>
+      <stop offset="0" style="stop-color:var(--wx-raincloud-top, #d4dce8)"/>
+      <stop offset="1" style="stop-color:var(--wx-raincloud-bottom, #8d9bb0)"/>
     </linearGradient>
     <linearGradient id="wx-drop" gradientUnits="userSpaceOnUse" x1="0" y1="44" x2="0" y2="58">
       <stop offset="0" stop-color="#9fd4ff"/>
@@ -132,9 +137,9 @@ export const ICON_DEFS = `
       <stop offset="1" stop-color="#ffb703"/>
     </linearGradient>
     <linearGradient id="wx-fogline" gradientUnits="userSpaceOnUse" x1="12" y1="0" x2="56" y2="0">
-      <stop offset="0" stop-color="#e6ecf5" stop-opacity=".2"/>
-      <stop offset=".5" stop-color="#e6ecf5"/>
-      <stop offset="1" stop-color="#e6ecf5" stop-opacity=".2"/>
+      <stop offset="0" stop-opacity=".2" style="stop-color:var(--wx-fog, #e6ecf5)"/>
+      <stop offset=".5" style="stop-color:var(--wx-fog, #e6ecf5)"/>
+      <stop offset="1" stop-opacity=".2" style="stop-color:var(--wx-fog, #e6ecf5)"/>
     </linearGradient>
   </defs>`;
 
